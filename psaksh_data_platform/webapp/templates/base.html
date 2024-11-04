@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}PSAKSH{% endblock %} — Public Sector Analytics &amp; Knowledge Systems Hub</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f4f8;
+      color: #2d3748;
+      min-height: 100vh;
+    }
+
+    /* ── Navigation ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: #1a365d;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .nav-brand {
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.2rem;
+      text-decoration: none;
+      white-space: nowrap;
+      margin-right: 10px;
+    }
+    .nav-brand .brand-sub {
+      font-size: 0.65rem;
+      font-weight: 400;
+      opacity: 0.75;
+      display: block;
+      line-height: 1;
+    }
+
+    .nav-link {
+      color: #90cdf4;
+      text-decoration: none;
+      font-size: 0.82rem;
+      padding: 6px 9px;
+      border-radius: 4px;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .nav-link:hover { color: #fff; background: #2a4a7f; }
+    .nav-link.active {
+      color: #fff;
+      border-bottom: 2px solid #63b3ed;
+      padding-bottom: 4px;
+    }
+
+    .nav-spacer { flex: 1; }
+
+    /* ── Dropdown menus ── */
+    .nav-dropdown {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+    .nav-drop-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .nav-drop-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: #1e3a5f;
+      border: 1px solid #2a4a7f;
+      border-radius: 8px;
+      min-width: 220px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      z-index: 2000;
+      padding: 6px 0;
+      animation: dropIn 0.15s ease;
+    }
+    @keyframes dropIn {
+      from { opacity:0; transform:translateY(-6px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .nav-dropdown:hover .nav-drop-menu,
+    .nav-dropdown:focus-within .nav-drop-menu { display: block; }
+    .nav-drop-item {
+      display: flex;
+      flex-direction: column;
+      padding: 9px 16px;
+      color: #bee3f8;
+      text-decoration: none;
+      font-size: 0.82rem;
+      transition: background 0.12s;
+      border-left: 3px solid transparent;
+    }
+    .nav-drop-item:hover, .nav-drop-item.active {
+      background: #2a4a7f;
+      color: #fff;
+      border-left-color: #63b3ed;
+    }
+    .nav-drop-item span { font-weight: 600; }
+    .nav-drop-item small {
+      font-size: 0.7rem;
+      color: #90cdf4;
+      margin-top: 1px;
+      font-weight: 400;
+    }
+    .nav-drop-item.nav-drop-sub {
+      padding: 5px 16px 5px 24px;
+      font-size: 0.76rem;
+      color: #90cdf4;
+      flex-direction: row;
+      align-items: center;
+    }
+    .nav-drop-item.nav-drop-sub:hover { color: #fff; }
+    .nav-drop-divider {
+      height: 1px;
+      background: #2a4a7f;
+      margin: 4px 0;
+    }
+    .nav-drop-label {
+      padding: 4px 16px;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4a7fa5;
+      font-weight: 600;
+    }
+
+    .btn-gen {
+      background: #d69e2e;
+      color: #fff;
+      border: none;
+      padding: 7px 13px;
+      border-radius: 5px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+    .btn-gen:hover { background: #b7791f; }
+
+    .btn-etl {
+      background: #276749;
+      color: #fff;
+      border: none;
+      padding: 7px 13px;
+      border-radius: 5px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+    .btn-etl:hover { background: #1c4532; }
+
+    /* ── Story Bar ── */
+    .story-bar {
+      background: linear-gradient(135deg, #2b6cb0, #2c7a7b);
+      color: #fff;
+      font-style: italic;
+      font-size: 0.95rem;
+      padding: 10px 24px;
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── DQ Banner ── */
+    .dq-banner {
+      background: #fff3cd;
+      border: 1px solid #f6ad55;
+      border-left: 4px solid #ed8936;
+      padding: 10px 20px;
+      font-size: 0.88rem;
+      color: #744210;
+    }
+
+    /* ── Page Container ── */
+    .page {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
+    }
+
+    /* ── KPI Cards ── */
+    .kpi-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 16px 20px;
+      flex: 1 1 140px;
+      min-width: 130px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      border-left: 4px solid #a0aec0;
+    }
+    .kpi-card.red   { border-left-color: #e53e3e; }
+    .kpi-card.green { border-left-color: #38a169; }
+    .kpi-card.blue  { border-left-color: #3182ce; }
+    .kpi-card.amber { border-left-color: #d69e2e; }
+    .kpi-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #718096;
+      margin-bottom: 6px;
+    }
+    .kpi-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1a202c;
+      line-height: 1;
+    }
+    .kpi-trend {
+      font-size: 0.78rem;
+      margin-top: 4px;
+      color: #718096;
+    }
+    .trend-up   { color: #e53e3e; }
+    .trend-down { color: #38a169; }
+
+    /* ── Chart Boxes ── */
+    .chart-box {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .chart-box h3 {
+      font-size: 0.95rem;
+      color: #2d3748;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    /* ── Chart Grid ── */
+    .chart-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    /* ── Layer Cards (3-col) ── */
+    .layer-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+    .layer-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      padding: 20px;
+    }
+
+    /* ── ETL Flow ── */
+    .etl-flow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .etl-stage {
+      background: #fff;
+      border-radius: 8px;
+      padding: 14px 20px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      min-width: 110px;
+    }
+    .etl-arrow {
+      font-size: 1.4rem;
+      color: #a0aec0;
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px 32px;
+      width: 90%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: #718096;
+    }
+    .modal-close:hover { color: #1a202c; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 3000;
+      min-width: 240px;
+      max-width: 380px;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      display: none;
+      transition: opacity 0.3s;
+    }
+    #toast.success { background: #276749; color: #fff; }
+    #toast.error   { background: #c53030; color: #fff; }
+    #toast.info    { background: #2b6cb0; color: #fff; }
+    #toast.warn    { background: #d69e2e; color: #fff; }
+
+    /* ── Progress Bar ── */
+    #progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: #63b3ed;
+      width: 0%;
+      z-index: 9999;
+      transition: width 0.3s ease;
+    }
+
+    /* ── Forms ── */
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 4px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      background: #f7fafc;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #63b3ed;
+      background: #fff;
+    }
+
+    /* ── Misc ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .badge-green  { background: #c6f6d5; color: #276749; }
+    .badge-red    { background: #fed7d7; color: #c53030; }
+    .badge-blue   { background: #bee3f8; color: #2b6cb0; }
+    .badge-amber  { background: #fefcbf; color: #744210; }
+    .badge-gray   { background: #e2e8f0; color: #4a5568; }
+
+    .alert-warn {
+      background: #fffbeb;
+      border: 1px solid #f6ad55;
+      border-left: 4px solid #ed8936;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 0.88rem;
+      color: #744210;
+    }
+    .alert-info {
+      background: #ebf8ff;
+      border: 1px solid #90cdf4;
+      border-left: 4px solid #3182ce;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 0.88rem;
+      color: #2c5282;
+    }
+
+    .sub {
+      color: #718096;
+      font-size: 0.88rem;
+      margin-bottom: 20px;
+    }
+
+    h1 { font-size: 1.6rem; margin-bottom: 6px; color: #1a202c; }
+    h2 { font-size: 1.2rem; margin-bottom: 14px; color: #2d3748; }
+
+    .lang-btn {
+      background: #e2e8f0;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-right: 4px;
+    }
+    .lang-btn.active { background: #2b6cb0; color: #fff; }
+
+    .lbl-ur { display: none; font-size: 0.78rem; color: #718096; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { background: #edf2f7; padding: 8px 10px; text-align: left; font-weight: 600; color: #4a5568; }
+    td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+    tr:hover td { background: #f7fafc; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .chart-grid-2  { grid-template-columns: 1fr; }
+      .layer-cards   { grid-template-columns: 1fr; }
+      .kpi-row       { gap: 10px; }
+      .kpi-card      { flex: 1 1 120px; }
+    }
+    @media (max-width: 600px) {
+      nav { height: auto; flex-wrap: wrap; padding: 8px 12px; gap: 4px; }
+      .nav-brand { width: 100%; }
+      .nav-spacer { display: none; }
+      .page { padding: 16px 12px 32px; }
+      h1 { font-size: 1.3rem; }
+      .modal-box { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<!-- ── Navigation ── -->
+<nav>
+  <a class="nav-brand" href="/publichealth/">
+    PSAKSH
+    <span class="brand-sub">Public Sector Analytics &amp; Knowledge Systems Hub</span>
+  </a>
+
+  <!-- Overview -->
+  <a class="nav-link {% if request.path in ['/publichealth/','/publichealth','/','/'] %}active{% endif %}"
+     href="/publichealth/">🏠 Overview</a>
+
+  <!-- Analytics dropdown -->
+  <div class="nav-dropdown">
+    <button class="nav-link nav-drop-btn {% if '/nutrition' in request.path or '/maternal' in request.path or '/facilities' in request.path %}active{% endif %}">
+      📊 Analytics ▾
+    </button>
+    <div class="nav-drop-menu">
+      <a href="/publichealth/nutrition" class="nav-drop-item {% if '/nutrition' in request.path %}active{% endif %}">
+        🥗 <span>Nutrition</span>
+        <small>Stunting, wasting, anemia</small>
+      </a>
+      <a href="/publichealth/maternal" class="nav-drop-item {% if '/maternal' in request.path %}active{% endif %}">
+        🤱 <span>Maternal Health</span>
+        <small>ANC, delivery, hemoglobin</small>
+      </a>
+      <a href="/publichealth/facilities" class="nav-drop-item {% if '/facilities' in request.path %}active{% endif %}">
+        🏥 <span>Facilities</span>
+        <small>Readiness, stock-outs</small>
+      </a>
+    </div>
+  </div>
+
+  <!-- Field Ops dropdown -->
+  <div class="nav-dropdown">
+    <button class="nav-link nav-drop-btn {% if '/field' in request.path or '/survey' in request.path %}active{% endif %}">
+      📍 Field Ops ▾
+    </button>
+    <div class="nav-drop-menu">
+      <a href="/publichealth/field" class="nav-drop-item {% if '/field' in request.path %}active{% endif %}">
+        📍 <span>Field Operations</span>
+        <small>Coverage, back-checks, enumerators</small>
+      </a>
+      <a href="/publichealth/survey" class="nav-drop-item {% if '/survey' in request.path %}active{% endif %}">
+        📋 <span>Survey Collection</span>
+        <small>Single &amp; bulk data entry</small>
+      </a>
+    </div>
+  </div>
+
+  <!-- Data Engineering dropdown -->
+  <div class="nav-dropdown">
+    <button class="nav-link nav-drop-btn {% if '/data-pipeline' in request.path %}active{% endif %}">
+      ⚙ Data Eng ▾
+    </button>
+    <div class="nav-drop-menu">
+      <a href="/publichealth/data-pipeline" class="nav-drop-item {% if '/data-pipeline' in request.path %}active{% endif %}">
+        ⚙ <span>ETL Pipeline</span>
+        <small>Bronze → Silver → Gold</small>
+      </a>
+      <a href="/publichealth/api/v1/" target="_blank" class="nav-drop-item">
+        📡 <span>REST API</span>
+        <small>Power BI / Tableau / JSON</small>
+      </a>
+      <div class="nav-drop-divider"></div>
+      <div class="nav-drop-label">API Endpoints</div>
+      <a href="/publichealth/api/v1/child-nutrition" target="_blank" class="nav-drop-item nav-drop-sub">
+        → Child Nutrition
+      </a>
+      <a href="/publichealth/api/v1/district-summary" target="_blank" class="nav-drop-item nav-drop-sub">
+        → District Summary
+      </a>
+      <a href="/publichealth/api/v1/kpis" target="_blank" class="nav-drop-item nav-drop-sub">
+        → KPIs (Power BI)
+      </a>
+      <a href="/publichealth/api/v1/tableau/child-nutrition" target="_blank" class="nav-drop-item nav-drop-sub">
+        → Tableau WDC
+      </a>
+    </div>
+  </div>
+
+  <!-- Reference dropdown -->
+  <div class="nav-dropdown">
+    <button class="nav-link nav-drop-btn {% if '/glossary' in request.path %}active{% endif %}">
+      📖 Reference ▾
+    </button>
+    <div class="nav-drop-menu">
+      <a href="/publichealth/glossary" class="nav-drop-item {% if '/glossary' in request.path %}active{% endif %}">
+        📖 <span>Glossary</span>
+        <small>Terms, methods, KPIs explained</small>
+      </a>
+      <div class="nav-drop-divider"></div>
+      <div class="nav-drop-label">Quick Reference</div>
+      <a href="/publichealth/glossary#health" class="nav-drop-item nav-drop-sub">→ Health Indicators</a>
+      <a href="/publichealth/glossary#engineering" class="nav-drop-item nav-drop-sub">→ Data Engineering</a>
+      <a href="/publichealth/glossary#quality" class="nav-drop-item nav-drop-sub">→ Data Quality</a>
+      <a href="/publichealth/glossary#api" class="nav-drop-item nav-drop-sub">→ API & BI Tools</a>
+    </div>
+  </div>
+
+  <div class="nav-spacer"></div>
+
+  <!-- Status indicator -->
+  <div id="navStatus" style="font-size:0.72rem;color:#68d391;margin-right:8px;display:none">
+    ● Live
+  </div>
+
+  <button class="btn-gen" onclick="openSurvey()" title="Open survey form to collect data">
+    📋 Collect Data
+  </button>
+  <button class="btn-etl" onclick="runETL()" title="Run Bronze→Silver→Gold ETL pipeline">
+    ▶ Run ETL
+  </button>
+</nav>
+
+<!-- ── Story Bar ── -->
+<div class="story-bar">
+  <span id="storyBarText">{% block story_headline %}PSAKSH — Public Health Analytics{% endblock %}</span>
+</div>
+
+<!-- ── DQ Banner ── -->
+{% if dq_banner %}
+<div class="dq-banner">⚠ <strong>Data Quality Alert:</strong> {{ dq_banner }}</div>
+{% endif %}
+
+<!-- ── Page Content ── -->
+<div class="page">
+  {% block content %}{% endblock %}
+</div>
+
+<!-- ── Survey Modal ── -->
+<div class="modal-overlay" id="surveyModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeSurvey()">✕</button>
+    <h2 style="margin-bottom:4px;">
+      <span class="lbl-en" style="display:inline;">Household Survey</span>
+      <span class="lbl-ur">گھریلو سروے</span>
+    </h2>
+    <div style="margin-bottom:14px;">
+      <button class="lang-btn active" id="langBtnEn" onclick="setLang('en')">English</button>
+      <button class="lang-btn" id="langBtnUr" onclick="setLang('ur')">اردو</button>
+      <button class="lang-btn" style="margin-left:8px;background:#e9d8fd;color:#553c9a;" onclick="autoFill()">Auto-fill</button>
+    </div>
+
+    <form id="surveyForm" onsubmit="submitSurvey(event)">
+      <div class="form-group">
+        <label>
+          <span class="lbl-en" style="display:inline;">District</span>
+          <span class="lbl-ur">ضلع</span>
+        </label>
+        <input type="text" name="district" required placeholder="e.g. Lahore">
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span class="lbl-en" style="display:inline;">Union Council</span>
+          <span class="lbl-ur">یونین کونسل</span>
+        </label>
+        <input type="text" name="union_council" required placeholder="e.g. UC-12">
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span class="lbl-en" style="display:inline;">Respondent Name</span>
+          <span class="lbl-ur">جواب دہندہ کا نام</span>
+        </label>
+        <input type="text" name="respondent_name" required>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span class="lbl-en" style="display:inline;">Age</span>
+          <span class="lbl-ur">عمر</span>
+        </label>
+        <input type="number" name="age" min="15" max="90" required>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span class="lbl-en" style="display:inline;">Household Size</span>
+          <span class="lbl-ur">گھر کے افراد</span>
+        </label>
+        <input type="number" name="household_size" min="1" max="30" required>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span class="lbl-en" style="display:inline;">Children Under 5</span>
+          <span class="lbl-ur">پانچ سال سے کم بچے</span>
+        </label>
+        <input type="number" name="children_u5" min="0" max="10" required>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span class="lbl-en" style="display:inline;">Water Source</span>
+          <span class="lbl-ur">پانی کا ذریعہ</span>
+        </label>
+        <select name="water_source" required>
+          <option value="">-- Select / منتخب کریں --</option>
+          <option value="piped">Piped / پائپ</option>
+          <option value="handpump">Handpump / ہینڈ پمپ</option>
+          <option value="well">Well / کنواں</option>
+          <option value="tanker">Tanker / ٹینکر</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span class="lbl-en" style="display:inline;">SES Tier</span>
+          <span class="lbl-ur">معاشی درجہ</span>
+        </label>
+        <select name="ses_tier" required>
+          <option value="">-- Select / منتخب کریں --</option>
+          <option value="low">Low / کم</option>
+          <option value="middle">Middle / درمیانہ</option>
+          <option value="high">High / زیادہ</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span class="lbl-en" style="display:inline;">Has Toilet</span>
+          <span class="lbl-ur">بیت الخلاء</span>
+        </label>
+        <select name="has_toilet" required>
+          <option value="">-- Select / منتخب کریں --</option>
+          <option value="yes">Yes / ہاں</option>
+          <option value="no">No / نہیں</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span class="lbl-en" style="display:inline;">Consent Given</span>
+          <span class="lbl-ur">رضامندی</span>
+        </label>
+        <select name="consent" required>
+          <option value="">-- Select / منتخب کریں --</option>
+          <option value="yes">Yes / ہاں</option>
+          <option value="no">No / نہیں</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <span class="lbl-en" style="display:inline;">GPS Coordinates</span>
+          <span class="lbl-ur">جی پی ایس</span>
+        </label>
+        <input type="text" name="gps" id="modalGps" placeholder="lat,lon">
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button type="submit" class="btn-etl" style="flex:1;">
+          <span class="lbl-en" style="display:inline;">Submit</span>
+          <span class="lbl-ur">جمع کریں</span>
+        </button>
+        <button type="button" class="btn-gen" onclick="closeSurvey()">
+          <span class="lbl-en" style="display:inline;">Cancel</span>
+          <span class="lbl-ur">منسوخ</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div id="toast"></div>
+
+<script>
+  var BASE = '/publichealth';
+
+  /* ── Progress Bar ── */
+  function progress(pct) {
+    var bar = document.getElementById('progress-bar');
+    bar.style.width = pct + '%';
+    if (pct >= 100) {
+      setTimeout(function() { bar.style.width = '0%'; }, 600);
+    }
+  }
+
+  /* ── Toast ── */
+  function toast(msg, type) {
+    type = type || 'info';
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = type;
+    el.style.display = 'block';
+    el.style.opacity = '1';
+    setTimeout(function() {
+      el.style.opacity = '0';
+      setTimeout(function() { el.style.display = 'none'; }, 300);
+    }, 3500);
+  }
+
+  /* ── Run ETL ── */
+  function runETL() {
+    progress(20);
+    toast('Starting ETL pipeline...', 'info');
+    fetch(BASE + '/run-pipeline', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'}
+    })
+      .then(function(r) {
+        if (!r.ok && r.status !== 200) {
+          return r.text().then(function(t) {
+            throw new Error('Server returned ' + r.status + ': ' + t.substring(0, 120));
+          });
+        }
+        var ct = r.headers.get('content-type') || '';
+        if (ct.indexOf('json') === -1) {
+          return r.text().then(function(t) {
+            throw new Error('Expected JSON but got: ' + t.substring(0, 120));
+          });
+        }
+        return r.json();
+      })
+      .then(function(d) {
+        progress(100);
+        var status = d.status || 'ok';
+        if (status === 'started') {
+          toast(d.message || 'ETL started in background. Refresh in ~60s.', 'info');
+          setTimeout(function() { location.reload(); }, 90000);
+        } else if (status === 'ok') {
+          toast(d.message || 'ETL complete', 'success');
+          setTimeout(function() { location.reload(); }, 2000);
+        } else {
+          toast('ETL error: ' + (d.message || 'Unknown error'), 'error');
+        }
+      })
+      .catch(function(e) {
+        progress(100);
+        toast('ETL error: ' + e.message, 'error');
+      });
+  }
+
+  /* ── Survey Modal ── */
+  function openSurvey() {
+    document.getElementById('surveyModal').classList.add('open');
+  }
+  function closeSurvey() {
+    document.getElementById('surveyModal').classList.remove('open');
+  }
+
+  /* ── Language Toggle ── */
+  function setLang(lang) {
+    var enEls = document.querySelectorAll('.lbl-en');
+    var urEls = document.querySelectorAll('.lbl-ur');
+    if (lang === 'ur') {
+      enEls.forEach(function(el) { el.style.display = 'none'; });
+      urEls.forEach(function(el) { el.style.display = 'inline'; });
+      document.getElementById('langBtnEn').classList.remove('active');
+      document.getElementById('langBtnUr').classList.add('active');
+    } else {
+      enEls.forEach(function(el) { el.style.display = 'inline'; });
+      urEls.forEach(function(el) { el.style.display = 'none'; });
+      document.getElementById('langBtnEn').classList.add('active');
+      document.getElementById('langBtnUr').classList.remove('active');
+    }
+  }
+
+  /* ── Auto-fill ── */
+  var EN_F = ['Ayesha','Fatima','Zainab','Maryam','Sana','Hina','Nadia','Sara','Rabia','Amna'];
+  var EN_M = ['Ahmed','Muhammad','Ali','Hassan','Usman','Bilal','Tariq','Imran','Asif','Kamran'];
+  var EN_S = ['Khan','Malik','Sheikh','Chaudhry','Butt','Rana','Mirza','Siddiqui','Qureshi','Ansari'];
+  var UR_F = ['عائشہ','فاطمہ','زینب','مریم','ثناء','حنا','نادیہ','سارہ','رابعہ','آمنہ'];
+  var UR_M = ['احمد','محمد','علی','حسن','عثمان','بلال','طارق','عمران','آصف','کامران'];
+  var UR_S = ['خان','ملک','شیخ','چوہدری','بٹ','رانا','مرزا','صدیقی','قریشی','انصاری'];
+
+  function rnd(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function autoFill() {
+    var useUrdu = Math.random() < 0.5;
+    var name = useUrdu
+      ? rnd(UR_F) + ' ' + rnd(UR_S)
+      : rnd(EN_F) + ' ' + rnd(EN_S);
+    var form = document.getElementById('surveyForm');
+    var districts = ['Lahore','Karachi','Faisalabad','Multan','Rawalpindi','Peshawar','Quetta','Hyderabad'];
+    form.district.value        = rnd(districts);
+    form.union_council.value   = 'UC-' + (Math.floor(Math.random()*50)+1);
+    form.respondent_name.value = name;
+    form.age.value             = Math.floor(Math.random()*40)+18;
+    form.household_size.value  = Math.floor(Math.random()*8)+2;
+    form.children_u5.value     = Math.floor(Math.random()*4);
+    var ws = ['piped','handpump','well','tanker'];
+    form.water_source.value    = rnd(ws);
+    var ses = ['low','middle','high'];
+    form.ses_tier.value        = rnd(ses);
+    form.has_toilet.value      = Math.random() > 0.35 ? 'yes' : 'no';
+    form.consent.value         = 'yes';
+    form.gps.value             = (24 + Math.random()*6).toFixed(5) + ',' + (67 + Math.random()*7).toFixed(5);
+  }
+
+  /* ── Survey Submit ── */
+  function submitSurvey(e) {
+    e.preventDefault();
+    var form = document.getElementById('surveyForm');
+    var data = {};
+    new FormData(form).forEach(function(v, k) { data[k] = v; });
+    progress(30);
+    fetch(BASE + '/api/submit-survey', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      progress(100);
+      if (d.status === 'ok' || d.success) {
+        toast('Survey submitted successfully!', 'success');
+        form.reset();
+        closeSurvey();
+      } else {
+        toast(d.message || 'Submission failed', 'error');
+      }
+    })
+    .catch(function(err) {
+      progress(100);
+      toast('Error: ' + err.message, 'error');
+    });
+  }
+
+  /* ── Close modal on overlay click ── */
+  document.getElementById('surveyModal').addEventListener('click', function(e) {
+    if (e.target === this) closeSurvey();
+  });
+</script>
+</body>
+</html>

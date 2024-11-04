@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Field Operations{% endblock %}
+
+{% block story_headline %}📍 Field Data Quality Dashboard — Back-Check Monitoring &amp; Enumerator Performance{% endblock %}
+
+{% block content %}
+<h1>📍 Field Operations &amp; Data Quality</h1>
+<p class="sub">
+  Back-check methodology · Enumerator performance · GPS validation · Measurement discrepancy analysis
+</p>
+
+<!-- ── Narrative Intro ── -->
+<div class="chart-box" style="border-left:4px solid #276749;background:#f0fff4;margin-bottom:20px;">
+  <p style="font-size:0.9rem;color:#4a5568;line-height:1.7;margin:0;">
+    <strong style="color:#276749;">Back-Check Methodology:</strong>
+    A random <strong>10% sample</strong> of completed household interviews is re-visited by a senior supervisor
+    within 72 hours of the original enumeration. Measurements are compared against original records using
+    defined thresholds: <strong>±2 cm</strong> for height and <strong>±0.5 kg</strong> for weight.
+    Discrepancies beyond these thresholds trigger an enumerator review and potential data flagging.
+    GPS coordinates are validated against district boundaries, and duplicate household IDs are
+    automatically detected during nightly ETL runs.
+  </p>
+</div>
+
+<!-- ── KPI Row ── -->
+<div class="kpi-row">
+  <div class="kpi-card {% if bc_kpis and bc_kpis.pass_rate_num is defined %}{% if bc_kpis.pass_rate_num >= 90 %}green{% elif bc_kpis.pass_rate_num >= 75 %}amber{% else %}red{% endif %}{% else %}blue{% endif %}">
+    <div class="kpi-label">Overall Pass Rate</div>
+    <div class="kpi-value">{{ bc_kpis.pass_rate | default('—') }}</div>
+    <div class="kpi-trend" style="font-size:0.75rem;color:#718096;">Back-check threshold ≥ 90%</div>
+  </div>
+
+  <div class="kpi-card {% if bc_kpis and bc_kpis.avg_height_disc_num is defined %}{% if bc_kpis.avg_height_disc_num <= 1.5 %}green{% elif bc_kpis.avg_height_disc_num <= 2.0 %}amber{% else %}red{% endif %}{% else %}blue{% endif %}">
+    <div class="kpi-label">Avg Height Discrepancy</div>
+    <div class="kpi-value">{{ bc_kpis.avg_height_disc | default('—') }}</div>
+    <div class="kpi-trend" style="font-size:0.75rem;color:#718096;">Threshold: ±2 cm</div>
+  </div>
+
+  <div class="kpi-card {% if bc_kpis and bc_kpis.avg_weight_disc_num is defined %}{% if bc_kpis.avg_weight_disc_num <= 0.4 %}green{% elif bc_kpis.avg_weight_disc_num <= 0.5 %}amber{% else %}red{% endif %}{% else %}blue{% endif %}">
+    <div class="kpi-label">Avg Weight Discrepancy</div>
+    <div class="kpi-value">{{ bc_kpis.avg_weight_disc | default('—') }}</div>
+    <div class="kpi-trend" style="font-size:0.75rem;color:#718096;">Threshold: ±0.5 kg</div>
+  </div>
+
+  <div class="kpi-card {% if bc_kpis and bc_kpis.morbidity_match_num is defined %}{% if bc_kpis.morbidity_match_num >= 85 %}green{% elif bc_kpis.morbidity_match_num >= 70 %}amber{% else %}red{% endif %}{% else %}blue{% endif %}">
+    <div class="kpi-label">Morbidity Match Rate</div>
+    <div class="kpi-value">{{ bc_kpis.morbidity_match | default('—') }}</div>
+    <div class="kpi-trend" style="font-size:0.75rem;color:#718096;">Symptom recall consistency</div>
+  </div>
+</div>
+
+<!-- ── Charts ── -->
+<div class="chart-grid-2">
+  <div class="chart-box">
+    <h3>📅 Back-Check Pass Rate — Timeline</h3>
+    {% if charts and charts.timeline %}
+    <div id="chartTimeline"></div>
+    {% else %}
+    <div style="height:220px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">📭</span>
+      <span style="font-size:0.85rem;">Timeline data not yet available</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="chart-box">
+    <h3>🗺 Field Coverage by District</h3>
+    {% if charts and charts.coverage %}
+    <div id="chartCoverage"></div>
+    {% else %}
+    <div style="height:220px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">📭</span>
+      <span style="font-size:0.85rem;">Coverage map not yet available</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Enumerator Performance Table ── -->
+{% if enumerator_table %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <h3>👤 Enumerator Performance</h3>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Enumerator ID</th>
+          <th>Name</th>
+          <th>Surveys Completed</th>
+          <th>Back-Checks</th>
+          <th>Pass Rate</th>
+          <th>Avg Height Disc.</th>
+          <th>Avg Weight Disc.</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in enumerator_table %}
+        <tr>
+          <td><code style="font-size:0.8rem;">{{ row.enum_id | default('—') }}</code></td>
+          <td>{{ row.name | default('—') }}</td>
+          <td>{{ row.surveys | default('—') }}</td>
+          <td>{{ row.backchecks | default('—') }}</td>
+          <td>
+            <span class="badge {% if row.pass_rate_num is defined and row.pass_rate_num >= 90 %}badge-green{% elif row.pass_rate_num is defined and row.pass_rate_num >= 75 %}badge-amber{% else %}badge-red{% endif %}">
+              {{ row.pass_rate | default('—') }}
+            </span>
+          </td>
+          <td>{{ row.avg_height_disc | default('—') }}</td>
+          <td>{{ row.avg_weight_disc | default('—') }}</td>
+          <td>
+            {% if row.status == 'active' %}<span class="badge badge-green">Active</span>
+            {% elif row.status == 'flagged' %}<span class="badge badge-red">Flagged</span>
+            {% elif row.status == 'review' %}<span class="badge badge-amber">Under Review</span>
+            {% else %}<span class="badge badge-gray">{{ row.status | default('—') }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── DQ Issues Expandable ── -->
+<details style="margin-bottom:20px;">
+  <summary style="cursor:pointer;font-weight:600;font-size:0.95rem;color:#2d3748;padding:14px 18px;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.07);list-style:none;display:flex;align-items:center;gap:8px;">
+    <span>⚠</span>
+    <span>Data Quality Issues Detail</span>
+    <span style="margin-left:auto;font-size:0.8rem;color:#718096;font-weight:400;">Click to expand</span>
+  </summary>
+  <div style="background:#fff;border-radius:0 0 8px 8px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.07);border-top:1px solid #e2e8f0;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
+
+      <!-- Bilingual Values -->
+      <div>
+        <h4 style="font-size:0.85rem;color:#4a5568;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <span>🌐</span> Bilingual / Mixed-Language Values
+        </h4>
+        {% if dq_issues and dq_issues.bilingual_values %}
+          <p style="font-size:0.82rem;color:#718096;">
+            {{ dq_issues.bilingual_values.count | default(0) }} records with mixed-language entries detected.
+            {% if dq_issues.bilingual_values.examples %}
+            <br>Examples: {{ dq_issues.bilingual_values.examples | join(', ') }}
+            {% endif %}
+          </p>
+        {% else %}
+          <p style="font-size:0.82rem;color:#a0aec0;">No bilingual value issues detected.</p>
+        {% endif %}
+      </div>
+
+      <!-- Duplicates -->
+      <div>
+        <h4 style="font-size:0.85rem;color:#4a5568;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <span>🔁</span> Duplicate Records
+        </h4>
+        {% if dq_issues and dq_issues.duplicates %}
+          <p style="font-size:0.82rem;color:#718096;">
+            {{ dq_issues.duplicates.count | default(0) }} duplicate household IDs found.
+            {% if dq_issues.duplicates.ids %}
+            <br>IDs: {{ dq_issues.duplicates.ids[:5] | join(', ') }}{% if dq_issues.duplicates.ids | length > 5 %} …{% endif %}
+            {% endif %}
+          </p>
+        {% else %}
+          <p style="font-size:0.82rem;color:#a0aec0;">No duplicate records detected.</p>
+        {% endif %}
+      </div>
+
+      <!-- Out of Range -->
+      <div>
+        <h4 style="font-size:0.85rem;color:#4a5568;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <span>📏</span> Out-of-Range Measurements
+        </h4>
+        {% if dq_issues and dq_issues.out_of_range %}
+          <p style="font-size:0.82rem;color:#718096;">
+            {{ dq_issues.out_of_range.count | default(0) }} measurements outside biologically plausible ranges.
+            {% if dq_issues.out_of_range.fields %}
+            <br>Fields: {{ dq_issues.out_of_range.fields | join(', ') }}
+            {% endif %}
+          </p>
+        {% else %}
+          <p style="font-size:0.82rem;color:#a0aec0;">No out-of-range values detected.</p>
+        {% endif %}
+      </div>
+
+      <!-- GPS Issues -->
+      <div>
+        <h4 style="font-size:0.85rem;color:#4a5568;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <span>📡</span> GPS / Location Issues
+        </h4>
+        {% if dq_issues and dq_issues.gps_issues %}
+          <p style="font-size:0.82rem;color:#718096;">
+            {{ dq_issues.gps_issues.count | default(0) }} records with invalid or out-of-boundary GPS coordinates.
+            {% if dq_issues.gps_issues.districts %}
+            <br>Affected districts: {{ dq_issues.gps_issues.districts | join(', ') }}
+            {% endif %}
+          </p>
+        {% else %}
+          <p style="font-size:0.82rem;color:#a0aec0;">No GPS issues detected.</p>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</details>
+
+<script>
+{% if charts and charts.timeline %}
+(function() {
+  var spec = {{ charts.timeline | safe }};
+  Plotly.newPlot('chartTimeline', spec.data, spec.layout || {}, {responsive:true, displayModeBar:false});
+})();
+{% endif %}
+{% if charts and charts.coverage %}
+(function() {
+  var spec = {{ charts.coverage | safe }};
+  Plotly.newPlot('chartCoverage', spec.data, spec.layout || {}, {responsive:true, displayModeBar:false});
+})();
+{% endif %}
+</script>
+{% endblock %}

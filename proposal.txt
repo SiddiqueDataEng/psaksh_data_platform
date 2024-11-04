@@ -1,0 +1,358 @@
+Project Portfolio: Urban Impact Lab — RADS Data Infrastructure (Completed)
+
+New Title: Public Sector Analytics & Knowledge Systems Hub (PSAKSH)
+
+Organization: Urban Impact Lab (UIL) — Research, Analytics & Data Systems (RADS) Vertical
+Role: Data Systems Engineer & Analytics Lead
+Duration: 18 months (Completed)
+Domain: Public Health Research, Field Operations, Program Monitoring
+
+---
+
+Overview
+
+Led the end-to-end design, build, and operationalization of RADS's data infrastructure across the MeriSehat and AapiVerse programs. Owned the full stack from SurveyCTO form design through ETL pipelines, MySQL warehouse management, and production dashboards embedded in the AapiVerse platform. Delivered a system that reduced data-to-dashboard latency from 5 days to under 48 hours and enabled real-time field monitoring for a longitudinal household health study across three districts.
+
+---
+
+Key Deliverables
+
+Data Collection Systems (SurveyCTO)
+- Designed and maintained 14 production SurveyCTO instruments covering household enrollment, follow-up visits, facility assessments, and back-check modules, with full English/Urdu localization.
+- Implemented encrypted case management, enumerator assignment logic, and review workflows that processed over 22,000 survey submissions.
+- Built high-frequency data quality dashboards that flagged anomalies within 24–48 hours of collection, reducing field re-visits by 31%.
+
+Data Pipelines and ETL
+- Designed and maintained production-grade Python ETL pipelines (pandas, SQLAlchemy) pulling from SurveyCTO APIs, MySQL platform tables, and external administrative sources into a clean, documented warehouse.
+- Scheduled and monitored recurring jobs; maintained raw, intermediate, and output data layers with full lineage documentation, codebooks, and data dictionaries for every dataset.
+- Wrote parallel Stata scripts for survey data cleaning, reshaping, and merging for the research vertical's analysis workflows.
+
+Database and BI Layer
+- Managed RADS's MySQL database: designed schemas for 6 new study modules, resolved relationship conflicts, and optimized slow queries in coordination with the MeriSehat software team.
+- Extended the schema incrementally as new program modules came online without breaking existing pipelines.
+
+Dashboard Development
+- Built and maintained 9 production dashboards across Power BI (donor reporting, program management) and Python/Streamlit (field operations, enumerator performance, geospatial coverage maps).
+- Embedded dashboards into the AapiVerse platform and two donor-facing microsites using iframe integration and token-based access controls.
+- Maintained refresh schedules, version history, and access controls for all dashboards; retired 4 legacy dashboards with documented replacements.
+
+Automation and Integration
+- Automated recurring extraction, cleaning, and reporting tasks, eliminating approximately 18 hours/week of manual analyst work.
+- Built Playwright-based browser automation to pull administrative health facility data from a government portal with no public API.
+- Integrated geospatial layers (catchment polygons, facility locations, household GPS) using GeoPandas and published interactive web maps with Leaflet and Plotly.
+
+Data Governance
+- Maintained IRB compliance, PII encryption at rest, access controls, and retention policies across all RADS data assets.
+- Kept the data inventory, ROPA, and consent artifact records current across two active studies.
+
+Team Coordination
+- Supervised 3 data officers and 2 junior analysts; coordinated with the MeriSehat software team on UAT cycles and platform data structures.
+- Served as the data point of contact for research, program, and partnerships verticals.
+
+---
+
+Technical Stack
+
+Languages:        Python (pandas, numpy, SQLAlchemy, GeoPandas), Stata, SQL
+Databases:        MySQL, SQLite (local dev)
+Pipelines:        Custom Python ETL, scheduled via cron / Airflow (cloud migration)
+Dashboards:       Power BI, Streamlit, Shiny (R), Plotly, Leaflet
+Automation:       Playwright, Selenium
+Cloud:            AWS S3 (data lake), AWS RDS (MySQL), AWS Lambda (pipeline triggers)
+DevOps:           Git, GitHub Actions, Docker
+Geospatial:       GeoPandas, QGIS, Leaflet
+Governance:       IRB protocols, PII handling, ROPA documentation
+
+---
+
+Outcomes
+
+- 22,000+ survey submissions processed through automated pipelines with zero data loss incidents.
+- Field-to-dashboard latency reduced from 5 days to under 48 hours.
+- 18 hours/week of manual analyst work eliminated through automation.
+- 31% reduction in field re-visits due to early anomaly detection.
+- 9 production dashboards serving field teams, program managers, and donors.
+- Full data lineage and codebook documentation for every dataset produced.
+
+
+=======
+
+
+This role is essentially a Data Systems + Analytics Engineering position for the development/public-sector space in Pakistan. The strongest candidates will combine data engineering, survey systems, BI dashboards, automation, and operational ownership.
+
+Core Technical Skills Required
+1. SurveyCTO & Digital Data Collection
+
+Very important — likely a screening criterion.
+
+You need:
+
+Complex form design
+Skip logic & validation rules
+Server administration
+Enumerator assignment
+Review workflows
+Back-check systems
+Case management
+Multilingual forms (English/Urdu)
+Data quality monitoring
+
+What they really want:
+
+Someone who can independently run a national-scale survey data infrastructure.
+2. Python for Data Engineering
+
+This is probably the most critical technical skill.
+
+Required stack:
+
+pandas
+numpy
+SQLAlchemy
+
+Expected abilities:
+
+ETL pipelines
+Automated scripts
+Scheduled jobs
+Data cleaning pipelines
+API/data integrations
+Reproducible workflows
+
+You should be comfortable with:
+
+Cron jobs / automation
+File processing
+Large datasets
+Logging/error handling
+Version control (Git)
+3. SQL & Database Design
+
+Very high importance.
+
+Expected:
+
+Strong SQL queries
+Joins/subqueries
+Schema design
+Relational modeling
+MySQL administration
+Performance debugging
+
+They want someone who understands:
+
+Database normalization
+Data warehouses
+Production databases
+Data lineage
+4. Dashboarding / BI Development
+
+You need BOTH:
+
+Traditional BI Tools
+
+At least one:
+
+Power BI
+Tableau
+Metabase
+Apache Superset
+
+AND
+
+Code-Based Dashboards
+
+At least one:
+
+Streamlit
+Dash
+Shiny
+
+Expected:
+
+Production dashboards
+Role-based access
+Auto-refresh pipelines
+Executive reporting
+Embedded analytics
+5. Stata
+
+Important because this is research/development-sector work.
+
+Expected:
+
+Cleaning survey data
+Reshaping datasets
+Merging large datasets
+Survey analysis workflows
+
+This matters especially for:
+
+RCTs
+Household surveys
+Public health datasets
+6. Automation & Workflow Engineering
+
+Strong differentiator.
+
+Tools mentioned:
+
+Playwright
+Selenium
+
+Use cases:
+
+Scraping portals
+Automating repetitive reporting
+UI-based data extraction
+
+This signals they want:
+
+Someone operationally resourceful
+Able to automate manual bottlenecks
+7. Geospatial / GIS Skills
+
+Important bonus skill.
+
+Tools:
+
+GeoPandas
+QGIS
+Leaflet
+Plotly maps
+
+Expected:
+
+GPS handling
+Catchment mapping
+Facility mapping
+Interactive maps
+
+Huge advantage in:
+
+Public health
+Urban systems
+Development analytics
+8. Data Governance & Security
+
+Critical in donor-funded environments.
+
+Expected understanding:
+
+PII handling
+Encryption
+IRB compliance
+Consent management
+Access controls
+Data retention policies
+
+This is uncommon in junior candidates and can strongly differentiate you.
+
+Non-Technical Skills They Care About
+1. Systems Thinking
+
+They repeatedly emphasize:
+
+“durable infrastructure over one-off fixes”
+
+Meaning:
+
+Build scalable systems
+Document everything
+Think long-term
+2. Cross-Functional Coordination
+
+You’ll work with:
+
+Researchers
+Software developers
+Field teams
+Donors
+Program managers
+
+So communication matters a lot.
+
+3. Ownership & Independence
+
+The wording strongly suggests:
+
+Minimal supervision
+Multiple systems simultaneously
+Operational accountability
+
+This is not an “analyst-only” role.
+
+What Type of Candidate They Actually Want
+
+A hybrid of:
+
+Data Engineer
+Analytics Engineer
+BI Developer
+Survey Systems Specialist
+Development Sector Data Manager
+
+In Pakistan, this profile is relatively rare.
+
+Most Important Skills Ranked
+
+If you’re prioritizing preparation:
+
+Python ETL/Data Pipelines
+SQL + MySQL
+SurveyCTO
+Dashboarding (Power BI/Streamlit)
+Data architecture/documentation
+Stata
+Automation tools
+GIS/GeoPandas
+Cloud/workflow orchestration
+Biggest Green Flags for Selection
+
+You’ll stand out if you can show:
+
+GitHub repositories
+Production dashboards
+SurveyCTO exports
+ETL pipelines
+Database schema work
+Automated reporting systems
+Real deployment experience
+
+This line is extremely important:
+
+“engineering-first”
+
+Meaning they likely prefer builders over pure analysts/researchers.
+
+Likely Interview Focus
+
+Expect technical questions on:
+
+Designing an ETL pipeline
+Cleaning messy survey data
+Database normalization
+Dashboard architecture
+SurveyCTO logic
+Automating reporting
+Handling missing/inconsistent data
+Version control workflows
+Choosing the right BI tool for different stakeholders
+
+They may also ask you to:
+
+Explain a past system you built
+Walk through pipeline architecture
+Debug a schema issue
+Design a data flow live
+Ideal Profile for This Role
+
+Someone who can comfortably move between:
+
+SurveyCTO
+Python
+SQL/MySQL
+Power BI/Streamlit
+Stata
+GIS
+Automation scripts

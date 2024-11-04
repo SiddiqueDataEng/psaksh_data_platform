@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Overview{% endblock %}
+
+{% block story_headline %}
+{% if story_headline %}{{ story_headline }}{% else %}📊 PSAKSH Overview — National Child Nutrition &amp; Maternal Health Dashboard{% endif %}
+{% endblock %}
+
+{% block content %}
+<h1>🏠 PSAKSH Analytics Dashboard</h1>
+<p class="sub">Last updated: {{ last_updated | default('N/A') }}</p>
+
+{% if story_headline %}
+<div class="alert-warn">📢 {{ story_headline }}</div>
+{% endif %}
+
+{% if dq_summary %}
+<div class="alert-info">🔍 <strong>Data Quality Summary:</strong> {{ dq_summary }}</div>
+{% endif %}
+
+<!-- ── KPI Row ── -->
+<div class="kpi-row">
+  <div class="kpi-card blue">
+    <div class="kpi-label">Households Enrolled</div>
+    <div class="kpi-value">{{ kpis.households | default('—') }}</div>
+    {% if kpis.households_trend is defined %}
+    <div class="kpi-trend">
+      {% if kpis.households_trend > 0 %}<span class="trend-up">▲ {{ kpis.households_trend }}</span>
+      {% elif kpis.households_trend < 0 %}<span class="trend-down">▼ {{ kpis.households_trend | abs }}</span>
+      {% else %}<span>→ stable</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="kpi-card blue">
+    <div class="kpi-label">Children Measured</div>
+    <div class="kpi-value">{{ kpis.children | default('—') }}</div>
+    {% if kpis.children_trend is defined %}
+    <div class="kpi-trend">
+      {% if kpis.children_trend > 0 %}<span class="trend-up">▲ {{ kpis.children_trend }}</span>
+      {% elif kpis.children_trend < 0 %}<span class="trend-down">▼ {{ kpis.children_trend | abs }}</span>
+      {% else %}<span>→ stable</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="kpi-card red">
+    <div class="kpi-label">Stunting Rate</div>
+    <div class="kpi-value">{{ kpis.stunting | default('—') }}</div>
+    {% if kpis.stunting_trend is defined %}
+    <div class="kpi-trend">
+      {% if kpis.stunting_trend > 0 %}<span class="trend-up">▲ {{ kpis.stunting_trend }}</span>
+      {% elif kpis.stunting_trend < 0 %}<span class="trend-down">▼ {{ kpis.stunting_trend | abs }}</span>
+      {% else %}<span>→ stable</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="kpi-card red">
+    <div class="kpi-label">Wasting Rate</div>
+    <div class="kpi-value">{{ kpis.wasting | default('—') }}</div>
+    {% if kpis.wasting_trend is defined %}
+    <div class="kpi-trend">
+      {% if kpis.wasting_trend > 0 %}<span class="trend-up">▲ {{ kpis.wasting_trend }}</span>
+      {% elif kpis.wasting_trend < 0 %}<span class="trend-down">▼ {{ kpis.wasting_trend | abs }}</span>
+      {% else %}<span>→ stable</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="kpi-card red">
+    <div class="kpi-label">Underweight Rate</div>
+    <div class="kpi-value">{{ kpis.underweight | default('—') }}</div>
+    {% if kpis.underweight_trend is defined %}
+    <div class="kpi-trend">
+      {% if kpis.underweight_trend > 0 %}<span class="trend-up">▲ {{ kpis.underweight_trend }}</span>
+      {% elif kpis.underweight_trend < 0 %}<span class="trend-down">▼ {{ kpis.underweight_trend | abs }}</span>
+      {% else %}<span>→ stable</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="kpi-card red">
+    <div class="kpi-label">Child Anemia</div>
+    <div class="kpi-value">{{ kpis.anemia_children | default('—') }}</div>
+    {% if kpis.anemia_children_trend is defined %}
+    <div class="kpi-trend">
+      {% if kpis.anemia_children_trend > 0 %}<span class="trend-up">▲ {{ kpis.anemia_children_trend }}</span>
+      {% elif kpis.anemia_children_trend < 0 %}<span class="trend-down">▼ {{ kpis.anemia_children_trend | abs }}</span>
+      {% else %}<span>→ stable</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="kpi-card green">
+    <div class="kpi-label">ANC 4+ Coverage</div>
+    <div class="kpi-value">{{ kpis.anc_4plus | default('—') }}</div>
+    {% if kpis.anc_4plus_trend is defined %}
+    <div class="kpi-trend">
+      {% if kpis.anc_4plus_trend > 0 %}<span class="trend-down">▲ {{ kpis.anc_4plus_trend }}</span>
+      {% elif kpis.anc_4plus_trend < 0 %}<span class="trend-up">▼ {{ kpis.anc_4plus_trend | abs }}</span>
+      {% else %}<span>→ stable</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="kpi-card green">
+    <div class="kpi-label">Skilled Delivery</div>
+    <div class="kpi-value">{{ kpis.skilled_delivery | default('—') }}</div>
+    {% if kpis.skilled_delivery_trend is defined %}
+    <div class="kpi-trend">
+      {% if kpis.skilled_delivery_trend > 0 %}<span class="trend-down">▲ {{ kpis.skilled_delivery_trend }}</span>
+      {% elif kpis.skilled_delivery_trend < 0 %}<span class="trend-up">▼ {{ kpis.skilled_delivery_trend | abs }}</span>
+      {% else %}<span>→ stable</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Charts + Quick Nav ── -->
+<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:24px;">
+  {% if charts and charts.stunting %}
+  <div class="chart-box" style="flex:1.4;min-width:300px;">
+    <h3>📊 Stunting by District</h3>
+    <div id="chartStunting"></div>
+  </div>
+  {% endif %}
+
+  <div style="flex:1;min-width:220px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <a href="/publichealth/nutrition" style="text-decoration:none;">
+        <div class="chart-box" style="text-align:center;padding:20px 12px;cursor:pointer;transition:box-shadow 0.15s;"
+             onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.14)'"
+             onmouseout="this.style.boxShadow=''">
+          <div style="font-size:2rem;">🥗</div>
+          <div style="font-weight:600;font-size:0.88rem;margin-top:6px;color:#2b6cb0;">Nutrition</div>
+        </div>
+      </a>
+      <a href="/publichealth/maternal" style="text-decoration:none;">
+        <div class="chart-box" style="text-align:center;padding:20px 12px;cursor:pointer;transition:box-shadow 0.15s;"
+             onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.14)'"
+             onmouseout="this.style.boxShadow=''">
+          <div style="font-size:2rem;">🤱</div>
+          <div style="font-weight:600;font-size:0.88rem;margin-top:6px;color:#6b46c1;">Maternal</div>
+        </div>
+      </a>
+      <a href="/publichealth/field" style="text-decoration:none;">
+        <div class="chart-box" style="text-align:center;padding:20px 12px;cursor:pointer;transition:box-shadow 0.15s;"
+             onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.14)'"
+             onmouseout="this.style.boxShadow=''">
+          <div style="font-size:2rem;">📍</div>
+          <div style="font-weight:600;font-size:0.88rem;margin-top:6px;color:#276749;">Field Ops</div>
+        </div>
+      </a>
+      <a href="/publichealth/facilities" style="text-decoration:none;">
+        <div class="chart-box" style="text-align:center;padding:20px 12px;cursor:pointer;transition:box-shadow 0.15s;"
+             onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.14)'"
+             onmouseout="this.style.boxShadow=''">
+          <div style="font-size:2rem;">🏥</div>
+          <div style="font-weight:600;font-size:0.88rem;margin-top:6px;color:#c05621;">Facilities</div>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Data Story ── -->
+<h2>📖 Data Story</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-bottom:24px;">
+  <div class="chart-box" style="border-top:4px solid #e53e3e;">
+    <h3 style="color:#c53030;">🚨 Nutrition Crisis</h3>
+    <p style="font-size:0.88rem;color:#4a5568;line-height:1.6;">
+      <strong>{{ kpis.stunting | default('—') }}</strong> of children are stunted —
+      a marker of chronic malnutrition with lifelong developmental consequences.
+      Wasting affects <strong>{{ kpis.wasting | default('—') }}</strong>, indicating acute food insecurity.
+      Underweight prevalence stands at <strong>{{ kpis.underweight | default('—') }}</strong>.
+    </p>
+    <a href="/publichealth/nutrition" style="font-size:0.82rem;color:#3182ce;">View Nutrition Dashboard →</a>
+  </div>
+
+  <div class="chart-box" style="border-top:4px solid #6b46c1;">
+    <h3 style="color:#553c9a;">🤱 Maternal Health Gap</h3>
+    <p style="font-size:0.88rem;color:#4a5568;line-height:1.6;">
+      Only <strong>{{ kpis.anc_4plus | default('—') }}</strong> of mothers received 4+ antenatal care visits.
+      Skilled birth attendance is at <strong>{{ kpis.skilled_delivery | default('—') }}</strong>,
+      leaving a significant proportion of deliveries without qualified care.
+    </p>
+    <a href="/publichealth/maternal" style="font-size:0.82rem;color:#3182ce;">View Maternal Dashboard →</a>
+  </div>
+
+  <div class="chart-box" style="border-top:4px solid #38a169;">
+    <h3 style="color:#276749;">📍 Field Operations</h3>
+    <p style="font-size:0.88rem;color:#4a5568;line-height:1.6;">
+      <strong>{{ kpis.households | default('—') }}</strong> households enrolled across all districts.
+      <strong>{{ kpis.children | default('—') }}</strong> children measured by field teams.
+      Back-check protocols ensure data quality through 10% random re-measurement.
+    </p>
+    <a href="/publichealth/field" style="font-size:0.82rem;color:#3182ce;">View Field Operations →</a>
+  </div>
+</div>
+
+<!-- ── API / Pipeline Info ── -->
+<div class="alert-info">
+  📡 <strong>API:</strong>
+  <a href="/publichealth/api/v1/kpis" target="_blank" style="color:#2b6cb0;">GET /api/v1/kpis</a> ·
+  <a href="/publichealth/api/v1/child-nutrition" target="_blank" style="color:#2b6cb0;">GET /api/v1/child-nutrition</a> ·
+  <a href="/publichealth/api/v1/" target="_blank" style="color:#2b6cb0;">📡 API Discovery</a> ·
+  <a href="/publichealth/data-pipeline" style="color:#2b6cb0;">⚙ View Data Pipeline</a>
+</div>
+
+{% if charts and charts.stunting %}
+<script>
+  (function() {
+    var spec = {{ charts.stunting | safe }};
+    Plotly.newPlot('chartStunting', spec.data, spec.layout || {}, {responsive: true, displayModeBar: false});
+  })();
+</script>
+{% endif %}
+{% endblock %}

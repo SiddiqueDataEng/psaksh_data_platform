@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Setup Required{% endblock %}
+{% block content %}
+<h1>Setup Required</h1>
+<p class="subtitle">No data found. Generate data and run the ETL pipeline to get started.</p>
+
+<div class="alert alert-warn">
+  <strong>No processed data found.</strong>
+  The dashboard needs data to display. Click the buttons below to set up the platform.
+</div>
+
+<div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:24px;">
+  <div class="chart-card" style="max-width:420px;">
+    <h3>Step 1 — Generate Synthetic Data</h3>
+    <p style="color:#718096; font-size:0.9rem; margin:10px 0 16px;">
+      Creates 500 households, 7,000+ visit records, facility assessments, and back-check records
+      modelled on a real Pakistan health survey program.
+    </p>
+    <button class="run-btn" style="background:#2d5a8e;" onclick="runGenerator()">
+      Generate Data (500 households)
+    </button>
+  </div>
+
+  <div class="chart-card" style="max-width:420px;">
+    <h3>Step 2 — Run ETL Pipeline</h3>
+    <p style="color:#718096; font-size:0.9rem; margin:10px 0 16px;">
+      Extracts, cleans, validates, and loads data into the MySQL warehouse.
+      Builds fact tables and reporting aggregations.
+    </p>
+    <button class="run-btn" onclick="runPipeline()">
+      Run ETL Pipeline
+    </button>
+  </div>
+</div>
+
+<div style="margin-top:32px;" class="alert alert-info">
+  After both steps complete, <a href="/" style="color:#2b6cb0;">refresh this page</a> to see the dashboard.
+</div>
+{% endblock %}

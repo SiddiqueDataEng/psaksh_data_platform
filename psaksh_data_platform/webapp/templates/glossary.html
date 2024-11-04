@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% block title %}Glossary & Data Dictionary{% endblock %}
+{% block story_headline %}📖 Glossary & Data Dictionary — Every term, method, KPI and process explained{% endblock %}
+{% block content %}
+
+<h1>📖 Glossary & Data Dictionary</h1>
+<p class="sub">Complete reference for all indicators, methods, data engineering terms, and KPIs used in this platform</p>
+
+<!-- Search -->
+<div style="background:#fff;border-radius:8px;padding:14px 18px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+  <input type="text" id="glossarySearch" placeholder="Search terms... e.g. stunting, CDC, Bronze, HAZ"
+         oninput="filterGlossary(this.value)"
+         style="width:100%;padding:10px 14px;border:1px solid #cbd5e0;border-radius:6px;font-size:.9rem">
+</div>
+
+<div id="glossaryContent">
+
+<!-- ── HEALTH INDICATORS ── -->
+<div class="chart-box" style="margin-bottom:20px" data-section="health">
+  <h2 style="color:#c53030;margin-bottom:16px">🥗 Child Nutrition Indicators</h2>
+  <table>
+    <thead><tr><th>Term</th><th>Definition</th><th>Threshold</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr data-term="stunting haz height-for-age chronic malnutrition">
+        <td><strong>Stunting</strong><br><small style="color:#718096">HAZ &lt; -2 SD</small></td>
+        <td>Low height-for-age. Reflects <em>chronic</em> malnutrition — cumulative effect of inadequate nutrition over months/years. Largely irreversible after age 2. Indicates long-term deprivation.</td>
+        <td><span class="badge badge-red">HAZ &lt; -2 SD</span><br><span class="badge badge-red" style="margin-top:4px">Severe: HAZ &lt; -3 SD</span></td>
+        <td>WHO Child Growth Standards</td>
+      </tr>
+      <tr data-term="wasting whz weight-for-height acute malnutrition food insecurity">
+        <td><strong>Wasting</strong><br><small style="color:#718096">WHZ &lt; -2 SD</small></td>
+        <td>Low weight-for-height. Reflects <em>acute</em> malnutrition — recent food insecurity or illness. Life-threatening if severe. Responds quickly to therapeutic feeding.</td>
+        <td><span class="badge badge-red">WHZ &lt; -2 SD</span><br><span class="badge badge-red" style="margin-top:4px">Severe: WHZ &lt; -3 SD</span></td>
+        <td>WHO Child Growth Standards</td>
+      </tr>
+      <tr data-term="underweight waz weight-for-age">
+        <td><strong>Underweight</strong><br><small style="color:#718096">WAZ &lt; -2 SD</small></td>
+        <td>Low weight-for-age. Composite indicator capturing both stunting and wasting. Less specific than HAZ or WHZ but widely used for programme monitoring.</td>
+        <td><span class="badge badge-red">WAZ &lt; -2 SD</span></td>
+        <td>WHO Child Growth Standards</td>
+      </tr>
+      <tr data-term="haz waz whz z-score standard deviation">
+        <td><strong>Z-Score (HAZ/WAZ/WHZ)</strong></td>
+        <td>Number of standard deviations from the WHO median reference population. HAZ = Height-for-Age Z-score. WAZ = Weight-for-Age. WHZ = Weight-for-Height. Values beyond ±6 are flagged as implausible and nulled during ETL.</td>
+        <td>Plausible range: -6 to +6</td>
+        <td>WHO 2006 Growth Standards</td>
+      </tr>
+      <tr data-term="muac mid-upper arm circumference acute malnutrition screening">
+        <td><strong>MUAC</strong><br><small style="color:#718096">Mid-Upper Arm Circumference</small></td>
+        <td>Rapid screening tool for acute malnutrition. Measured in mm. &lt;115mm = severe acute malnutrition. 115-125mm = moderate. Used in community-based screening. Historical data stored in cm — ETL converts to mm.</td>
+        <td>SAM: &lt;115mm<br>MAM: 115-125mm</td>
+        <td>WHO/UNICEF</td>
+      </tr>
+      <tr data-term="anemia hemoglobin iron deficiency">
+        <td><strong>Anemia</strong></td>
+        <td>Hemoglobin below threshold. Child anemia: Hb &lt;11 g/dL. Maternal anemia: Hb &lt;11 g/dL. Causes: iron deficiency, malaria, infections. Increases risk of poor cognitive development and maternal mortality.</td>
+        <td>Child: Hb &lt;11 g/dL<br>Maternal: Hb &lt;11 g/dL</td>
+        <td>WHO 2011</td>
+      </tr>
+      <tr data-term="vaccination immunization full coverage">
+        <td><strong>Vaccination (Full)</strong></td>
+        <td>Child has received all recommended vaccines per national immunization schedule (BCG, OPV, DPT, measles). Binary indicator: 1=fully vaccinated, 0=not fully vaccinated.</td>
+        <td>Target: ≥90% coverage</td>
+        <td>EPI Pakistan</td>
+      </tr>
+      <tr data-term="exclusive breastfeeding ebf under 6 months">
+        <td><strong>Exclusive Breastfeeding (EBF)</strong></td>
+        <td>Infant under 6 months receiving only breast milk (no water, formula, or other foods). Protects against diarrhea, respiratory infections, and malnutrition. Only recorded for children &lt;6 months.</td>
+        <td>Target: ≥50% under 6m</td>
+        <td>WHO/UNICEF</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ── MATERNAL HEALTH ── -->
+<div class="chart-box" style="margin-bottom:20px" data-section="maternal">
+  <h2 style="color:#553c9a;margin-bottom:16px">🤱 Maternal Health Indicators</h2>
+  <table>
+    <thead><tr><th>Term</th><th>Definition</th><th>Target</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr data-term="anc antenatal care 4 visits prenatal">
+        <td><strong>ANC 4+</strong><br><small style="color:#718096">Antenatal Care ≥4 visits</small></td>
+        <td>Proportion of women who received at least 4 antenatal care visits during pregnancy. WHO recommends ≥8 contacts. ANC 4+ is the standard programme indicator. Linked to lower maternal and neonatal mortality.</td>
+        <td>WHO target: ≥80%</td>
+        <td>WHO ANC Guidelines 2016</td>
+      </tr>
+      <tr data-term="skilled delivery birth attendant sba facility delivery">
+        <td><strong>Skilled Delivery</strong><br><small style="color:#718096">Skilled Birth Attendant</small></td>
+        <td>Delivery attended by a skilled health professional (doctor, nurse, midwife). Reduces maternal mortality by enabling management of obstetric complications. Key SDG 3.1 indicator.</td>
+        <td>National target: ≥80%</td>
+        <td>SDG 3.1 / PDHS</td>
+      </tr>
+      <tr data-term="hemoglobin hb maternal anemia iron folate">
+        <td><strong>Hemoglobin (g/dL)</strong></td>
+        <td>Blood hemoglobin concentration in grams per deciliter. Used to diagnose anemia. Measured at ANC visits. Values &lt;3 or &gt;20 g/dL are flagged as implausible during ETL Silver cleaning.</td>
+        <td>Normal: ≥11 g/dL</td>
+        <td>WHO 2011</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ── DATA ENGINEERING ── -->
+<div class="chart-box" style="margin-bottom:20px" data-section="engineering">
+  <h2 style="color:#2b6cb0;margin-bottom:16px">⚙ Data Engineering & ETL Terms</h2>
+  <table>
+    <thead><tr><th>Term</th><th>Definition</th><th>Used In</th></tr></thead>
+    <tbody>
+      <tr data-term="medallion bronze silver gold architecture layers">
+        <td><strong>Medallion Architecture</strong></td>
+        <td>Three-layer data architecture: <strong>Bronze</strong> (raw ingestion, exact copy), <strong>Silver</strong> (cleaned, validated, schema-unified), <strong>Gold</strong> (analytics-ready facts, dimensions, KPIs). Each layer adds value without destroying the previous.</td>
+        <td>ETL Pipeline</td>
+      </tr>
+      <tr data-term="bronze layer raw ingestion exact copy">
+        <td><strong>Bronze Layer</strong> 🥉</td>
+        <td>Exact copy of all source data with metadata added (_source_file, _ingested_at, _source_era, _load_type). No transformation. Preserves original errors for audit. Sources: CSV (SurveyCTO), Parquet (DB exports), JSON (DHIS2), legacy files.</td>
+        <td>data/bronze/</td>
+      </tr>
+      <tr data-term="silver layer cleaned validated normalised">
+        <td><strong>Silver Layer</strong> 🥈</td>
+        <td>Cleaned, validated, schema-unified data. All DQ issues fixed: bilingual normalisation, date parsing, deduplication, outlier removal, GPS validation. CDC columns added. Saved as Parquet.</td>
+        <td>data/silver/</td>
+      </tr>
+      <tr data-term="gold layer facts dimensions kpis analytics ready">
+        <td><strong>Gold Layer</strong> 🥇</td>
+        <td>Analytics-ready data: fact tables (fct_child_nutrition, fct_maternal_health), SCD2 dimensions (dim_district, dim_facility), windowed KPI aggregations (rpt_district_summary, rpt_province_summary). Served via API to Power BI, Tableau, Streamlit.</td>
+        <td>data/gold/</td>
+      </tr>
+      <tr data-term="full load initial load all data">
+        <td><strong>Full Load</strong></td>
+        <td>Load ALL data from source regardless of what was previously loaded. Used for initial setup or when source data has changed completely. Slower but ensures completeness. Triggered when no watermark exists.</td>
+        <td>Bronze ingestion</td>
+      </tr>
+      <tr data-term="incremental load partial load new records watermark">
+        <td><strong>Incremental Load</strong></td>
+        <td>Load only NEW records since the last successful run (tracked by watermark timestamp). Faster and more efficient than full load. Detects changes via file checksum comparison. Falls back to full load if checksum differs significantly.</td>
+        <td>Bronze ingestion</td>
+      </tr>
+      <tr data-term="cdc change data capture insert update delete">
+        <td><strong>CDC (Change Data Capture)</strong></td>
+        <td>Tracks every change to data: INSERT (new record), UPDATE (modified record), DELETE (removed record). Each Silver record gets _cdc_op, _cdc_ts, _cdc_source columns. Enables point-in-time recovery and audit trails.</td>
+        <td>Silver layer</td>
+      </tr>
+      <tr data-term="scd type 2 slowly changing dimension history">
+        <td><strong>SCD Type 2</strong><br><small style="color:#718096">Slowly Changing Dimension</small></td>
+        <td>Dimension table that preserves full history of changes. When a district or facility attribute changes, the old row is expired (_scd_effective_to set, _scd_is_current=False) and a new row is inserted. Enables historical analysis.</td>
+        <td>dim_district, dim_facility</td>
+      </tr>
+      <tr data-term="delta lake partitioned storage audit log acid">
+        <td><strong>Delta Lake Pattern</strong></td>
+        <td>Data stored in partitioned directories (year=YYYY/month=MM/) with an audit log (pipeline_state.json) tracking every run. Enables time-travel queries, incremental processing, and ACID-like guarantees without a full Delta Lake engine.</td>
+        <td>data/delta_log/</td>
+      </tr>
+      <tr data-term="watermark timestamp last loaded incremental">
+        <td><strong>Watermark</strong></td>
+        <td>Timestamp of the last successful data load for each dataset. Stored in pipeline_state.json. Used to determine which records are "new" in incremental loads. Updated after each successful Bronze ingestion.</td>
+        <td>pipeline_state.json</td>
+      </tr>
+      <tr data-term="upsert merge insert update primary key">
+        <td><strong>Upsert / Merge</strong></td>
+        <td>INSERT new records + UPDATE existing records in a single operation. Used in Gold layer to merge incoming data with existing fact tables. MySQL uses INSERT ... ON DUPLICATE KEY UPDATE. SQLite uses replace strategy.</td>
+        <td>Gold layer, DB load</td>
+      </tr>
+      <tr data-term="schema evolution different column names legacy">
+        <td><strong>Schema Evolution</strong></td>
+        <td>Handling different column names and structures across data sources and years. The Silver layer applies a SCHEMA_MAP to rename legacy columns (e.g. hh_id→household_id, anaemia→anemia, muac_cm→muac_mm) to canonical names.</td>
+        <td>Silver transform</td>
+      </tr>
+      <tr data-term="windowing time window aggregation monthly quarterly annual">
+        <td><strong>Windowing / Time-Window Aggregation</strong></td>
+        <td>Aggregating data over defined time periods: monthly (rolling 30-day), quarterly (Q1-Q4), annual (year-over-year). Used in Gold layer to build rpt_district_summary (by visit_round) and rpt_annual_trend (by survey_year).</td>
+        <td>Gold KPI tables</td>
+      </tr>
+      <tr data-term="data lineage provenance source tracking">
+        <td><strong>Data Lineage</strong></td>
+        <td>Every record tracks its origin: _source_file (original filename), _source_era (historical/current), _source_type (legacy_heterogeneous/mysql_db_export), _ingested_at (timestamp), _load_type (full/incremental/cdc). Enables full audit trail.</td>
+        <td>All layers</td>
+      </tr>
+      <tr data-term="parquet columnar format compressed analytics">
+        <td><strong>Parquet Format</strong></td>
+        <td>Columnar storage format optimised for analytics. Compressed (typically 5-10x smaller than CSV). Preserves data types. Used for Bronze, Silver, and Gold layers. Enables fast column-level queries by Power BI, Pandas, Spark.</td>
+        <td>Bronze/Silver/Gold</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ── DATA QUALITY ── -->
+<div class="chart-box" style="margin-bottom:20px" data-section="quality">
+  <h2 style="color:#c05621;margin-bottom:16px">🔍 Data Quality Terms</h2>
+  <table>
+    <thead><tr><th>Term</th><th>Definition</th><th>How Fixed</th></tr></thead>
+    <tbody>
+      <tr data-term="bilingual urdu english mixed language">
+        <td><strong>Bilingual Field Values</strong></td>
+        <td>Field values entered in Urdu script instead of English (e.g. "پائپ" instead of "piped", "ہاں" instead of "1"). Common in Pakistan field surveys where enumerators switch languages. ~15% of records affected.</td>
+        <td>Silver: URDU_TO_ENG maps</td>
+      </tr>
+      <tr data-term="duplicate submission same household twice">
+        <td><strong>Duplicate Submissions</strong></td>
+        <td>Same household submitted multiple times (paper form entered twice, network retry, enumerator error). ~4.5% of records. Silver layer deduplicates on household_id keeping the latest submission_time.</td>
+        <td>Silver: drop_duplicates(keep=last)</td>
+      </tr>
+      <tr data-term="outlier implausible value out of range">
+        <td><strong>Anthropometric Outliers</strong></td>
+        <td>Biologically implausible measurements: height &lt;40cm or &gt;130cm for children, weight &lt;1.5kg or &gt;30kg, MUAC &lt;80mm or &gt;200mm, Z-scores |z|&gt;6. Nulled during Silver cleaning with audit log.</td>
+        <td>Silver: clip to plausible range</td>
+      </tr>
+      <tr data-term="gps coordinates outside pakistan bounds">
+        <td><strong>GPS Out-of-Bounds</strong></td>
+        <td>GPS coordinates outside Pakistan bounding box (lat 23.5-37.5°N, lon 60.5-77.5°E). Caused by GPS signal loss, manual entry errors, or test data. Nulled during Silver cleaning.</td>
+        <td>Silver: null if outside bounds</td>
+      </tr>
+      <tr data-term="short interview fabrication data quality flag">
+        <td><strong>Short Interview Flag</strong></td>
+        <td>Interview duration &lt;10 minutes flagged as potential data fabrication. Enumerators may rush or fabricate responses. Preserved as short_interview_flag=1 in Silver/Gold for supervisor review. ~5% of records.</td>
+        <td>Preserved as quality flag</td>
+      </tr>
+      <tr data-term="date format inconsistent dd/mm/yyyy iso">
+        <td><strong>Inconsistent Date Formats</strong></td>
+        <td>Historical data used many date formats: DD/MM/YYYY, MM-DD-YYYY, DD.MM.YYYY, YYYY/MM/DD. Silver layer tries 7 date formats in order, falling back to pandas auto-parse. ~8% of historical records affected.</td>
+        <td>Silver: multi-format parser</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ── SES & GEOGRAPHY ── -->
+<div class="chart-box" style="margin-bottom:20px" data-section="geography">
+  <h2 style="color:#276749;margin-bottom:16px">🗺 Geography & Socioeconomic Terms</h2>
+  <table>
+    <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+    <tbody>
+      <tr data-term="ses socioeconomic status tier low middle high">
+        <td><strong>SES Tier</strong><br><small style="color:#718096">Socioeconomic Status</small></td>
+        <td>Household wealth classification: <strong>Low</strong> (58% of households — poorest quintiles, limited assets), <strong>Middle</strong> (32% — moderate assets, some formal employment), <strong>High</strong> (10% — formal employment, durable assets). Based on asset index, water source, sanitation.</td>
+      </tr>
+      <tr data-term="union council uc administrative unit pakistan">
+        <td><strong>Union Council (UC)</strong></td>
+        <td>Smallest administrative unit in Pakistan. Each district has multiple UCs. 5 UCs per district in this programme = 180 UCs total across 36 districts. Used for geographic targeting and coverage tracking.</td>
+      </tr>
+      <tr data-term="dhq rhc bhu health facility type">
+        <td><strong>DHQ / RHC / BHU</strong></td>
+        <td><strong>DHQ</strong> = District Headquarters Hospital (highest level, 15 staff required). <strong>RHC</strong> = Rural Health Centre (secondary level, 7 staff). <strong>BHU</strong> = Basic Health Unit (primary level, 3 staff). Readiness scores: DHQ ~72%, RHC ~58%, BHU ~42%.</td>
+      </tr>
+      <tr data-term="province punjab sindh kpk balochistan">
+        <td><strong>Provinces</strong></td>
+        <td>Pakistan's 4 provinces with distinct health profiles: <strong>Punjab</strong> (53% population, best indicators), <strong>Sindh</strong> (23%, urban-rural divide), <strong>KPK</strong> (15%, improving), <strong>Balochistan</strong> (9%, worst indicators — stunting 52%, skilled delivery 45%).</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ── API & TOOLS ── -->
+<div class="chart-box" style="margin-bottom:20px" data-section="api">
+  <h2 style="color:#1a365d;margin-bottom:16px">📡 API & BI Tool Integration</h2>
+  <table>
+    <thead><tr><th>Term</th><th>Definition</th><th>Endpoint</th></tr></thead>
+    <tbody>
+      <tr data-term="power bi live connection odata web connector">
+        <td><strong>Power BI Live Connection</strong></td>
+        <td>Power BI connects to the REST API via "Get Data → Web". The API returns OData-compatible JSON. Use the district-summary endpoint for pre-aggregated KPIs, or child-nutrition for row-level data. Refresh on schedule via Power BI Service.</td>
+        <td>/api/v1/district-summary</td>
+      </tr>
+      <tr data-term="tableau web data connector wdc">
+        <td><strong>Tableau WDC</strong></td>
+        <td>Tableau Web Data Connector endpoint returns data with column type hints (int/float/string/datetime). Use "Connect → Web Data Connector" in Tableau Desktop. Supports filtering via URL parameters.</td>
+        <td>/api/v1/tableau/child-nutrition</td>
+      </tr>
+      <tr data-term="odata compatible filtering pagination">
+        <td><strong>OData-Compatible Filtering</strong></td>
+        <td>All API endpoints support URL parameter filtering: ?district=Lahore&visit_round=1. Pagination: ?limit=1000&offset=0. Field selection: ?fields=district,stunting_rate. Authentication: ?api_key=demo.</td>
+        <td>All /api/v1/* endpoints</td>
+      </tr>
+      <tr data-term="streamlit python dashboard interactive">
+        <td><strong>Streamlit Dashboard</strong></td>
+        <td>Python-based interactive dashboard reading directly from Gold Parquet files. Provides deeper analytical capabilities than Flask: interactive filters, cross-filtering, statistical analysis. Run: streamlit run dashboards/app.py</td>
+        <td>Port 8501</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+</div><!-- end glossaryContent -->
+
+<script>
+function filterGlossary(query) {
+  var q = query.toLowerCase().trim();
+  var rows = document.querySelectorAll("tr[data-term]");
+  var sections = document.querySelectorAll("[data-section]");
+
+  rows.forEach(function(row) {
+    var terms = (row.getAttribute("data-term") || "").toLowerCase();
+    var text  = row.textContent.toLowerCase();
+    var match = !q || terms.includes(q) || text.includes(q);
+    row.style.display = match ? "" : "none";
+  });
+
+  // Hide section headers if all rows hidden
+  sections.forEach(function(section) {
+    var visible = section.querySelectorAll("tr[data-term]:not([style*='none'])");
+    section.style.display = visible.length > 0 ? "" : "none";
+  });
+}
+</script>
+{% endblock %}

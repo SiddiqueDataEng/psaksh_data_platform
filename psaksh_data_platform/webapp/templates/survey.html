@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+
+{% block title %}Survey Collection{% endblock %}
+
+{% block story_headline %}📋 Household Survey Form / گھریلو سروے فارم — Field Data Collection{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:20px;">
+  <div>
+    <h1 style="margin-bottom:2px;">
+      <span id="pageTitle-en">📋 Household Survey Collection</span>
+      <span id="pageTitle-ur" style="display:none;">📋 گھریلو سروے</span>
+    </h1>
+    <p class="sub" id="pageSub-en">Field data entry · GPS capture · Bilingual support</p>
+    <p class="sub" id="pageSub-ur" style="display:none;">فیلڈ ڈیٹا اندراج · جی پی ایس · دو لسانی معاونت</p>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:6px;">
+    <button class="lang-btn active" id="pageLangEn" onclick="setPageLang('en')">English</button>
+    <button class="lang-btn" id="pageLangUr" onclick="setPageLang('ur')">اردو</button>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start;" id="surveyPageGrid">
+
+  <!-- ── Left: Survey Form ── -->
+  <div class="chart-box">
+    <h3>
+      <span class="pg-en">New Survey Entry</span>
+      <span class="pg-ur" style="display:none;">نئی سروے اندراج</span>
+    </h3>
+
+    <form id="pageSurveyForm" onsubmit="submitPageSurvey(event)">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+        <div class="form-group">
+          <label>
+            <span class="pg-en">District</span>
+            <span class="pg-ur" style="display:none;">ضلع</span>
+          </label>
+          <select name="district" id="districtSelect" onchange="updateUC()" required>
+            <option value="">-- Select --</option>
+            <option value="Lahore">Lahore / لاہور</option>
+            <option value="Karachi">Karachi / کراچی</option>
+            <option value="Faisalabad">Faisalabad / فیصل آباد</option>
+            <option value="Multan">Multan / ملتان</option>
+            <option value="Rawalpindi">Rawalpindi / راولپنڈی</option>
+            <option value="Peshawar">Peshawar / پشاور</option>
+            <option value="Quetta">Quetta / کوئٹہ</option>
+            <option value="Hyderabad">Hyderabad / حیدرآباد</option>
+            <option value="Gujranwala">Gujranwala / گوجرانوالہ</option>
+            <option value="Sialkot">Sialkot / سیالکوٹ</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <span class="pg-en">Union Council</span>
+            <span class="pg-ur" style="display:none;">یونین کونسل</span>
+          </label>
+          <select name="union_council" id="ucSelect" required>
+            <option value="">-- Select District First --</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="grid-column:1/-1;">
+          <label>
+            <span class="pg-en">Respondent Name</span>
+            <span class="pg-ur" style="display:none;">جواب دہندہ کا نام</span>
+          </label>
+          <input type="text" name="respondent_name" id="pageRespondentName" required
+                 placeholder="Full name / پورا نام">
+        </div>
+
+        <div class="form-group">
+          <label>
+            <span class="pg-en">Age</span>
+            <span class="pg-ur" style="display:none;">عمر</span>
+          </label>
+          <input type="number" name="age" id="pageAge" min="15" max="90" required placeholder="Years / سال">
+        </div>
+
+        <div class="form-group">
+          <label>
+            <span class="pg-en">Household Size</span>
+            <span class="pg-ur" style="display:none;">گھر کے افراد</span>
+          </label>
+          <input type="number" name="household_size" id="pageHHSize" min="1" max="30" required>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <span class="pg-en">Children Under 5</span>
+            <span class="pg-ur" style="display:none;">پانچ سال سے کم بچے</span>
+          </label>
+          <input type="number" name="children_u5" id="pageChildrenU5" min="0" max="10" required>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <span class="pg-en">Water Source</span>
+            <span class="pg-ur" style="display:none;">پانی کا ذریعہ</span>
+          </label>
+          <select name="water_source" id="pageWaterSource" required>
+            <option value="">-- Select --</option>
+            <option value="piped">Piped / پائپ</option>
+            <option value="handpump">Handpump / ہینڈ پمپ</option>
+            <option value="well">Well / کنواں</option>
+            <option value="tanker">Tanker / ٹینکر</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <span class="pg-en">SES Tier</span>
+            <span class="pg-ur" style="display:none;">معاشی درجہ</span>
+          </label>
+          <select name="ses_tier" id="pageSES" required>
+            <option value="">-- Select --</option>
+            <option value="low">Low / کم</option>
+            <option value="middle">Middle / درمیانہ</option>
+            <option value="high">High / زیادہ</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <span class="pg-en">Has Toilet</span>
+            <span class="pg-ur" style="display:none;">بیت الخلاء</span>
+          </label>
+          <select name="has_toilet" id="pageToilet" required>
+            <option value="">-- Select --</option>
+            <option value="yes">Yes / ہاں</option>
+            <option value="no">No / نہیں</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <span class="pg-en">Consent Given</span>
+            <span class="pg-ur" style="display:none;">رضامندی</span>
+          </label>
+          <select name="consent" id="pageConsent" required>
+            <option value="">-- Select --</option>
+            <option value="yes">Yes / ہاں</option>
+            <option value="no">No / نہیں</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="grid-column:1/-1;">
+          <label>
+            <span class="pg-en">GPS Coordinates</span>
+            <span class="pg-ur" style="display:none;">جی پی ایس مقام</span>
+          </label>
+          <div style="display:flex;gap:8px;">
+            <input type="text" name="gps" id="pageGPS" placeholder="lat,lon (e.g. 31.5204,74.3587)" style="flex:1;">
+            <button type="button" onclick="detectGPS()"
+                    style="padding:8px 12px;background:#2b6cb0;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.82rem;white-space:nowrap;">
+              <span class="pg-en">📡 Detect</span>
+              <span class="pg-ur" style="display:none;">📡 تلاش</span>
+            </button>
+          </div>
+        </div>
+
+      </div><!-- end grid -->
+
+      <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;">
+        <button type="button" onclick="autoFillPage()"
+                style="padding:9px 16px;background:#e9d8fd;color:#553c9a;border:none;border-radius:5px;cursor:pointer;font-size:0.85rem;font-weight:600;">
+          🎲 <span class="pg-en">Auto-fill</span><span class="pg-ur" style="display:none;">خودکار بھریں</span>
+        </button>
+        <button type="submit" class="btn-etl" style="flex:1;padding:10px;font-size:0.9rem;">
+          <span class="pg-en">✓ Submit Survey</span>
+          <span class="pg-ur" style="display:none;">✓ سروے جمع کریں</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Right Panel ── -->
+  <div style="display:flex;flex-direction:column;gap:18px;">
+
+    <!-- Recent Submissions -->
+    <div class="chart-box">
+      <h3>
+        <span class="pg-en">Recent Submissions</span>
+        <span class="pg-ur" style="display:none;">حالیہ اندراجات</span>
+      </h3>
+      {% if recent_submissions %}
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>District</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sub in recent_submissions %}
+            <tr>
+              <td style="font-size:0.82rem;">{{ sub.respondent_name | default('—') }}</td>
+              <td style="font-size:0.82rem;">{{ sub.district | default('—') }}</td>
+              <td style="font-size:0.78rem;color:#718096;">{{ sub.submitted_at | default('—') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p style="font-size:0.85rem;color:#a0aec0;text-align:center;padding:20px 0;">
+        No recent submissions
+      </p>
+      {% endif %}
+    </div>
+
+    <!-- Batch Generation -->
+    <div class="chart-box">
+      <h3>
+        <span class="pg-en">Batch Data Generation</span>
+        <span class="pg-ur" style="display:none;">بیچ ڈیٹا تیاری</span>
+      </h3>
+      <div class="form-group">
+        <label>
+          <span class="pg-en">Number of Records: <span id="batchCountLabel">100</span></span>
+          <span class="pg-ur" style="display:none;">ریکارڈز کی تعداد: <span id="batchCountLabelUr">100</span></span>
+        </label>
+        <input type="range" id="batchSlider" min="10" max="500" step="10" value="100"
+               oninput="document.getElementById('batchCountLabel').textContent=this.value;document.getElementById('batchCountLabelUr').textContent=this.value;"
+               style="width:100%;accent-color:#2b6cb0;">
+        <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#a0aec0;margin-top:2px;">
+          <span>10</span><span>500</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <input type="checkbox" id="batchInjectDQ" style="width:16px;height:16px;cursor:pointer;">
+        <label for="batchInjectDQ" style="font-size:0.82rem;color:#4a5568;cursor:pointer;">
+          <span class="pg-en">Inject DQ issues</span>
+          <span class="pg-ur" style="display:none;">ڈیٹا مسائل شامل کریں</span>
+        </label>
+      </div>
+      <button onclick="runBatchGenerate()" class="btn-gen" style="width:100%;padding:10px;font-size:0.88rem;">
+        🎲 <span class="pg-en">Generate Records</span>
+        <span class="pg-ur" style="display:none;">ریکارڈز بنائیں</span>
+      </button>
+    </div>
+
+    <!-- Format Info -->
+    <div class="chart-box">
+      <h3>
+        <span class="pg-en">Output Formats</span>
+        <span class="pg-ur" style="display:none;">آؤٹ پٹ فارمیٹس</span>
+      </h3>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#f7fafc;border-radius:6px;">
+          <span style="font-size:1.1rem;">📄</span>
+          <div>
+            <div style="font-weight:600;font-size:0.82rem;">CSV</div>
+            <div style="font-size:0.75rem;color:#718096;">Universal compatibility, human-readable</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#f7fafc;border-radius:6px;">
+          <span style="font-size:1.1rem;">🗜</span>
+          <div>
+            <div style="font-weight:600;font-size:0.82rem;">Parquet</div>
+            <div style="font-size:0.75rem;color:#718096;">Columnar, compressed, analytics-optimised</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#f7fafc;border-radius:6px;">
+          <span style="font-size:1.1rem;">{ }</span>
+          <div>
+            <div style="font-weight:600;font-size:0.82rem;">JSON</div>
+            <div style="font-size:0.75rem;color:#718096;">API-ready, nested structure support</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#f7fafc;border-radius:6px;">
+          <span style="font-size:1.1rem;">🔷</span>
+          <div>
+            <div style="font-weight:600;font-size:0.82rem;">Avro</div>
+            <div style="font-size:0.75rem;color:#718096;">Schema-enforced, streaming pipelines</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end right panel -->
+</div><!-- end grid -->
+
+<script>
+  /* ── Page-level language toggle ── */
+  function setPageLang(lang) {
+    var enEls = document.querySelectorAll('.pg-en');
+    var urEls = document.querySelectorAll('.pg-ur');
+    if (lang === 'ur') {
+      enEls.forEach(function(el) { el.style.display = 'none'; });
+      urEls.forEach(function(el) { el.style.display = 'inline'; });
+      document.getElementById('pageLangEn').classList.remove('active');
+      document.getElementById('pageLangUr').classList.add('active');
+      document.getElementById('pageTitle-en').style.display = 'none';
+      document.getElementById('pageTitle-ur').style.display = 'inline';
+      document.getElementById('pageSub-en').style.display = 'none';
+      document.getElementById('pageSub-ur').style.display = 'block';
+    } else {
+      enEls.forEach(function(el) { el.style.display = 'inline'; });
+      urEls.forEach(function(el) { el.style.display = 'none'; });
+      document.getElementById('pageLangEn').classList.add('active');
+      document.getElementById('pageLangUr').classList.remove('active');
+      document.getElementById('pageTitle-en').style.display = 'inline';
+      document.getElementById('pageTitle-ur').style.display = 'none';
+      document.getElementById('pageSub-en').style.display = 'block';
+      document.getElementById('pageSub-ur').style.display = 'none';
+    }
+  }
+
+  /* ── Union Council population ── */
+  var UC_MAP = {
+    'Lahore':      ['UC-1 Gulberg','UC-2 Model Town','UC-3 DHA','UC-4 Johar Town','UC-5 Iqbal Town'],
+    'Karachi':     ['UC-1 Clifton','UC-2 Saddar','UC-3 Korangi','UC-4 Malir','UC-5 Orangi'],
+    'Faisalabad':  ['UC-1 Madina Town','UC-2 Iqbal Town','UC-3 Lyallpur','UC-4 Ghulam Muhammad Abad'],
+    'Multan':      ['UC-1 Shah Rukn-e-Alam','UC-2 Cantt','UC-3 Gulgasht','UC-4 Bosan Road'],
+    'Rawalpindi':  ['UC-1 Saddar','UC-2 Chaklala','UC-3 Dhoke Kala Khan','UC-4 Pirwadhai'],
+    'Peshawar':    ['UC-1 Hayatabad','UC-2 University Town','UC-3 Cantonment','UC-4 Gulbahar'],
+    'Quetta':      ['UC-1 Satellite Town','UC-2 Jinnah Town','UC-3 Brewery Road','UC-4 Sariab'],
+    'Hyderabad':   ['UC-1 Latifabad','UC-2 Qasimabad','UC-3 City','UC-4 Hirabad'],
+    'Gujranwala':  ['UC-1 Satellite Town','UC-2 Peoples Colony','UC-3 Rahwali','UC-4 Gondlanwala'],
+    'Sialkot':     ['UC-1 Cantt','UC-2 Paris Road','UC-3 Ugoki','UC-4 Daska']
+  };
+
+  function updateUC() {
+    var district = document.getElementById('districtSelect').value;
+    var ucSel = document.getElementById('ucSelect');
+    ucSel.innerHTML = '<option value="">-- Select UC --</option>';
+    if (district && UC_MAP[district]) {
+      UC_MAP[district].forEach(function(uc) {
+        var opt = document.createElement('option');
+        opt.value = uc;
+        opt.textContent = uc;
+        ucSel.appendChild(opt);
+      });
+    }
+  }
+
+  /* ── Auto-fill page form ── */
+  var EN_F = ['Ayesha','Fatima','Zainab','Maryam','Sana','Hina','Nadia','Sara','Rabia','Amna'];
+  var EN_M = ['Ahmed','Muhammad','Ali','Hassan','Usman','Bilal','Tariq','Imran','Asif','Kamran'];
+  var EN_S = ['Khan','Malik','Sheikh','Chaudhry','Butt','Rana','Mirza','Siddiqui','Qureshi','Ansari'];
+  var UR_F = ['عائشہ','فاطمہ','زینب','مریم','ثناء','حنا','نادیہ','سارہ','رابعہ','آمنہ'];
+  var UR_M = ['احمد','محمد','علی','حسن','عثمان','بلال','طارق','عمران','آصف','کامران'];
+  var UR_S = ['خان','ملک','شیخ','چوہدری','بٹ','رانا','مرزا','صدیقی','قریشی','انصاری'];
+
+  function rndItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function autoFillPage() {
+    var useUrdu = Math.random() < 0.5;
+    var name = useUrdu
+      ? rndItem(UR_F) + ' ' + rndItem(UR_S)
+      : rndItem(EN_F) + ' ' + rndItem(EN_S);
+
+    var districts = Object.keys(UC_MAP);
+    var district = rndItem(districts);
+
+    document.getElementById('districtSelect').value = district;
+    updateUC();
+    setTimeout(function() {
+      var ucSel = document.getElementById('ucSelect');
+      if (ucSel.options.length > 1) {
+        ucSel.selectedIndex = Math.floor(Math.random() * (ucSel.options.length - 1)) + 1;
+      }
+    }, 50);
+
+    document.getElementById('pageRespondentName').value = name;
+    document.getElementById('pageAge').value = Math.floor(Math.random() * 40) + 18;
+    document.getElementById('pageHHSize').value = Math.floor(Math.random() * 8) + 2;
+    document.getElementById('pageChildrenU5').value = Math.floor(Math.random() * 4);
+    document.getElementById('pageWaterSource').value = rndItem(['piped','handpump','well','tanker']);
+    document.getElementById('pageSES').value = rndItem(['low','middle','high']);
+    document.getElementById('pageToilet').value = Math.random() > 0.35 ? 'yes' : 'no';
+    document.getElementById('pageConsent').value = 'yes';
+    document.getElementById('pageGPS').value =
+      (24 + Math.random() * 6).toFixed(5) + ',' + (67 + Math.random() * 7).toFixed(5);
+  }
+
+  /* ── GPS Detection ── */
+  function detectGPS() {
+    if (!navigator.geolocation) {
+      toast('Geolocation not supported by this browser', 'warn');
+      return;
+    }
+    toast('Detecting GPS location…', 'info');
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        document.getElementById('pageGPS').value =
+          pos.coords.latitude.toFixed(6) + ',' + pos.coords.longitude.toFixed(6);
+        toast('GPS coordinates captured', 'success');
+      },
+      function(err) {
+        toast('GPS error: ' + err.message, 'error');
+      },
+      { timeout: 10000 }
+    );
+  }
+
+  /* ── Page Survey Submit ── */
+  function submitPageSurvey(e) {
+    e.preventDefault();
+    var form = document.getElementById('pageSurveyForm');
+    var data = {};
+    new FormData(form).forEach(function(v, k) { data[k] = v; });
+    progress(30);
+    fetch(BASE + '/api/submit-survey', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      progress(100);
+      if (d.status === 'ok' || d.success) {
+        toast('Survey submitted successfully!', 'success');
+        form.reset();
+        document.getElementById('ucSelect').innerHTML = '<option value="">-- Select District First --</option>';
+        setTimeout(function() { location.reload(); }, 1800);
+      } else {
+        toast(d.message || 'Submission failed', 'error');
+      }
+    })
+    .catch(function(err) {
+      progress(100);
+      toast('Error: ' + err.message, 'error');
+    });
+  }
+
+  /* ── Batch Generate ── */
+  function runBatchGenerate() {
+    var count = parseInt(document.getElementById('batchSlider').value) || 100;
+    var injectDQ = document.getElementById('batchInjectDQ').checked;
+    progress(20);
+    toast('Generating ' + count + ' records' + (injectDQ ? ' with DQ issues' : '') + '…', 'info');
+    fetch(BASE + '/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count: count, inject_dq: injectDQ })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      progress(100);
+      toast(d.message || ('Generated ' + count + ' records'), 'success');
+      setTimeout(function() { location.reload(); }, 1800);
+    })
+    .catch(function(err) {
+      progress(100);
+      toast('Generation error: ' + err.message, 'error');
+    });
+  }
+
+  /* ── Responsive grid ── */
+  function checkGrid() {
+    var grid = document.getElementById('surveyPageGrid');
+    if (window.innerWidth < 900) {
+      grid.style.gridTemplateColumns = '1fr';
+    } else {
+      grid.style.gridTemplateColumns = '1fr 380px';
+    }
+  }
+  window.addEventListener('resize', checkGrid);
+  checkGrid();
+</script>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Maternal Health{% endblock %}
+{% block story_headline %}
+  {% if kpis and kpis.anc_4plus %}
+    🤱 ANC 4+ coverage at {{ kpis.anc_4plus }} — skilled delivery {{ kpis.skilled_delivery }} across all districts
+  {% else %}
+    🤱 Maternal Health — ANC Coverage, Skilled Delivery &amp; Anemia Indicators
+  {% endif %}
+{% endblock %}
+{% block content %}
+
+<h1>🤱 Maternal Health</h1>
+<p class="sub">Antenatal care coverage, skilled birth attendance, and maternal anemia across 36 districts</p>
+
+<!-- Narrative callout -->
+<div class="chart-box" style="border-left:4px solid #6b46c1;background:#faf5ff;margin-bottom:20px;">
+  <p style="font-size:0.9rem;color:#4a5568;line-height:1.7;margin:0;">
+    <strong style="color:#553c9a;">Why Maternal Health Matters:</strong>
+    Women who receive <strong>4+ antenatal care visits</strong> are significantly more likely to deliver with a skilled attendant,
+    reducing maternal and neonatal mortality. <strong>Maternal anemia</strong> (Hb &lt; 11 g/dL) increases the risk of
+    low birth weight, preterm delivery, and child stunting — creating an intergenerational cycle of malnutrition.
+    Balochistan and rural Sindh show the largest gaps in both ANC coverage and skilled delivery.
+  </p>
+</div>
+
+<!-- KPI Row -->
+<div class="kpi-row">
+  <div class="kpi-card blue">
+    <div class="kpi-label">Women Assessed</div>
+    <div class="kpi-value">{{ kpis.women_assessed | default("—") }}</div>
+  </div>
+  <div class="kpi-card green">
+    <div class="kpi-label">ANC 4+ Coverage</div>
+    <div class="kpi-value">{{ kpis.anc_4plus | default("—") }}</div>
+    <div class="kpi-trend">WHO target: ≥ 80%</div>
+  </div>
+  <div class="kpi-card green">
+    <div class="kpi-label">Skilled Delivery</div>
+    <div class="kpi-value">{{ kpis.skilled_delivery | default("—") }}</div>
+    <div class="kpi-trend">National target: ≥ 80%</div>
+  </div>
+  <div class="kpi-card red">
+    <div class="kpi-label">Maternal Anemia</div>
+    <div class="kpi-value">{{ kpis.anemia | default("—") }}</div>
+    <div class="kpi-trend">Hb &lt; 11 g/dL</div>
+  </div>
+</div>
+
+<!-- Charts 2x2 -->
+<div class="chart-grid-2">
+  <div class="chart-box">
+    <h3>📈 ANC 4+ Coverage by District &amp; Round</h3>
+    {% if charts and charts.anc %}
+    <div id="chartAnc" style="min-height:300px;"></div>
+    {% else %}
+    <div style="height:260px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">📭</span><span style="font-size:0.85rem;">No ANC data available</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="chart-box">
+    <h3>🩸 Maternal Hemoglobin Distribution (g/dL)</h3>
+    {% if charts and charts.hb %}
+    <div id="chartHb" style="min-height:300px;"></div>
+    {% else %}
+    <div style="height:260px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">��</span><span style="font-size:0.85rem;">No hemoglobin data available</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="chart-box">
+    <h3>🏥 Skilled Delivery Rate by District</h3>
+    {% if charts and charts.skilled %}
+    <div id="chartSkilled" style="min-height:300px;"></div>
+    {% else %}
+    <div style="height:260px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">📭</span><span style="font-size:0.85rem;">No delivery data available</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="chart-box">
+    <h3>📊 Maternal Anemia by SES Tier</h3>
+    {% if charts and charts.anemia_ses %}
+    <div id="chartAnemiaSes" style="min-height:300px;"></div>
+    {% else %}
+    <div style="height:260px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">📭</span><span style="font-size:0.85rem;">No SES anemia data available</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+var _cfg = {responsive:true, displayModeBar:false};
+{% if charts and charts.anc %}
+(function(){var s={{ charts.anc|safe }};Plotly.newPlot("chartAnc",s.data,s.layout||{},_cfg);})();
+{% endif %}
+{% if charts and charts.hb %}
+(function(){var s={{ charts.hb|safe }};Plotly.newPlot("chartHb",s.data,s.layout||{},_cfg);})();
+{% endif %}
+{% if charts and charts.skilled %}
+(function(){var s={{ charts.skilled|safe }};Plotly.newPlot("chartSkilled",s.data,s.layout||{},_cfg);})();
+{% endif %}
+{% if charts and charts.anemia_ses %}
+(function(){var s={{ charts.anemia_ses|safe }};Plotly.newPlot("chartAnemiaSes",s.data,s.layout||{},_cfg);})();
+{% endif %}
+</script>
+{% endblock %}

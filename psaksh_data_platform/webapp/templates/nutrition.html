@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Nutrition Indicators{% endblock %}
+
+{% block story_headline %}
+  {% if indicator == 'stunting_rate' %}
+    📉 Stunting Rate — chronic malnutrition affects {{ insights.worst_rate | default('~40%') }} of children in {{ insights.worst_district | default('high-burden districts') }}
+  {% elif indicator == 'wasting_rate' %}
+    ⚠ Wasting Rate — acute malnutrition signals food insecurity in {{ insights.worst_district | default('high-burden districts') }}
+  {% elif indicator == 'underweight_rate' %}
+    📊 Underweight Rate — combined stunting and wasting burden across Pakistan
+  {% elif indicator == 'anemia_rate' %}
+    🩸 Anemia Rate — iron deficiency affecting {{ insights.worst_rate | default('~53%') }} of children
+  {% else %}
+    🥗 {{ indicator_label | default('Nutrition Indicators') }} — District-Level Analysis &amp; Trend Monitoring
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<h1>🥗 Nutrition Indicators</h1>
+<p class="sub">
+  Showing: <strong>{{ indicator_label | default(indicator) }}</strong> ·
+  Data rounds: {{ rounds | default('All') }} ·
+  Districts: {{ district_count | default('All') }}
+</p>
+
+<!-- ── Narrative Callout ── -->
+<div class="chart-box" style="border-left:4px solid #e53e3e;background:#fff5f5;margin-bottom:20px;">
+  <p style="font-size:0.9rem;color:#4a5568;line-height:1.7;margin:0;">
+    <strong style="color:#c53030;">Understanding Nutrition Indicators:</strong>
+    <strong>Stunting</strong> (height-for-age &lt; &minus;2 SD) reflects chronic, long-term malnutrition and is largely irreversible after age 2.
+    <strong>Wasting</strong> (weight-for-height &lt; &minus;2 SD) indicates acute malnutrition and is a leading cause of child mortality.
+    <strong>Underweight</strong> (weight-for-age &lt; &minus;2 SD) captures both chronic and acute deficits.
+    All indicators use WHO Child Growth Standards. Rates shown as percentages (0–100%).
+  </p>
+</div>
+
+{% if not charts or not charts.by_district_round %}
+<div class="alert-warn" style="margin-bottom:20px;">
+  &#9888; <strong>No chart data available.</strong>
+  Click <strong>Run ETL</strong> in the nav bar above, or go to
+  <a href="/publichealth/data-pipeline" style="color:#c05621;font-weight:600;">Data Pipeline</a>
+  and click <strong>Generate Data</strong> then <strong>Run ETL Pipeline</strong>.<br><br>
+  Or in cPanel Terminal:<br>
+  <code style="font-size:0.82rem;background:#fef3c7;padding:2px 6px;border-radius:3px;display:block;margin-top:6px;white-space:pre-wrap;">
+VENV=/home/sattioe1/virtualenv/softcomputech.com/publichealth/3.11
+APP=/home/sattioe1/softcomputech.com/publichealth
+$VENV/bin/python -m psaksh_data_platform.data_generator.run --households 1000 --output-dir $APP/psaksh_data_platform/data/raw --format csv
+$VENV/bin/python -m psaksh_data_platform.etl.pipeline.run --raw-dir $APP/psaksh_data_platform/data/raw --output-dir $APP/psaksh_data_platform/data</code>
+</div>
+{% endif %}
+
+<!-- ── Filter Bar ── -->
+<div style="display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;background:#fff;padding:14px 18px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.07);">
+  <form method="get" action="/publichealth/nutrition" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <label style="font-size:0.82rem;font-weight:600;color:#4a5568;">Indicator:</label>
+    <select name="indicator" onchange="this.form.submit()"
+            style="padding:6px 10px;border:1px solid #cbd5e0;border-radius:5px;font-size:0.85rem;background:#f7fafc;">
+      {% for vi, vl in valid_indicators.items() %}
+      <option value="{{ vi }}" {% if vi == indicator %}selected{% endif %}>{{ vl }}</option>
+      {% endfor %}
+    </select>
+  </form>
+
+  {% if insights %}
+  <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    {% if insights.worst_district %}
+    <span style="font-size:0.8rem;color:#718096;">Worst:</span>
+    <span class="badge badge-red">{{ insights.worst_district }} — {{ insights.worst_rate | default('') }}</span>
+    {% endif %}
+    {% if insights.best_district %}
+    <span style="font-size:0.8rem;color:#718096;">Best:</span>
+    <span class="badge badge-green">{{ insights.best_district }} — {{ insights.best_rate | default('') }}</span>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Chart Grid ── -->
+<div class="chart-grid-2">
+  <!-- By District & Round -->
+  <div class="chart-box">
+    <h3>📊 {{ indicator_label | default(indicator) }} by District &amp; Round</h3>
+    {% if charts and charts.by_district_round %}
+    <div id="chartByDistrict" style="min-height:340px;"></div>
+    {% else %}
+    <div style="height:220px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">📭</span>
+      <span style="font-size:0.85rem;">No district data available — run ETL pipeline</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Trend Over Time -->
+  <div class="chart-box">
+    <h3>📈 {{ indicator_label | default(indicator) }} Trend by District</h3>
+    {% if charts and charts.trend %}
+    <div id="chartTrend" style="min-height:300px;"></div>
+    {% else %}
+    <div style="height:220px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">📭</span>
+      <span style="font-size:0.85rem;">Trend data not yet available</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- By SES Tier -->
+  <div class="chart-box">
+    <h3>💰 {{ indicator_label | default(indicator) }} by Socioeconomic Tier</h3>
+    {% if charts and charts.by_ses %}
+    <div id="chartBySes" style="min-height:280px;"></div>
+    {% else %}
+    <div style="height:220px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">📭</span>
+      <span style="font-size:0.85rem;">SES breakdown not available</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Double Burden — always renders client-side via API, no server restart needed -->
+  <div class="chart-box">
+    <h3>⚖ Double Burden of Malnutrition</h3>
+    <div id="chartDoubleBurden" style="min-height:300px;"></div>
+    <script>
+    (function() {
+      var el = document.getElementById('chartDoubleBurden');
+      fetch('/publichealth/api/v1/district-summary')
+        .then(function(r){ return r.json(); })
+        .then(function(resp){
+          var rows = resp.data || [];
+          if (!rows.length) {
+            el.innerHTML = '<div style="height:220px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;"><span style="font-size:2rem;">📭</span><span>No data available</span></div>';
+            return;
+          }
+          var byD = {};
+          rows.forEach(function(r){
+            var d = r.district; if (!d) return;
+            if (!byD[d]) byD[d] = {s:[],w:[]};
+            if (r.stunting_rate != null) byD[d].s.push(+r.stunting_rate);
+            if (r.wasting_rate  != null) byD[d].w.push(+r.wasting_rate);
+          });
+          var avg = function(a){ return a.length ? a.reduce(function(x,y){return x+y;},0)/a.length : 0; };
+          var X=[],Y=[],B=[],SZ=[],TXT=[];
+          Object.keys(byD).forEach(function(d){
+            var s=avg(byD[d].s)*100, w=avg(byD[d].w)*100, b=Math.min(s,w);
+            X.push(s); Y.push(w); B.push(b);
+            SZ.push(Math.max(b*2.5, 8));
+            TXT.push(d+'<br>Stunting: '+s.toFixed(1)+'%<br>Wasting: '+w.toFixed(1)+'%<br>Double Burden: '+b.toFixed(1)+'%');
+          });
+          Plotly.newPlot(el, [{
+            x:X, y:Y, mode:'markers', type:'scatter',
+            marker:{size:SZ, color:B,
+              colorscale:[[0,'#276749'],[0.5,'#d69e2e'],[1,'#c53030']],
+              showscale:true, colorbar:{title:'Double<br>Burden %'},
+              sizemode:'diameter'},
+            text:TXT, hovertemplate:'%{text}<extra></extra>'
+          }], {
+            title:'Double Burden of Malnutrition by District',
+            xaxis:{title:'Stunting Rate (%)'},
+            yaxis:{title:'Wasting Rate (%)'},
+            height:340, margin:{t:50,b:40,l:50,r:20},
+            paper_bgcolor:'white', plot_bgcolor:'white'
+          }, {responsive:true, displayModeBar:false});
+        })
+        .catch(function(){
+          el.innerHTML = '<div style="height:220px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;"><span style="font-size:2rem;">📭</span><span>Double burden analysis not available</span></div>';
+        });
+    })();
+    </script>
+  </div>
+</div>
+
+<!-- Province comparison — full width -->
+{% if charts and charts.by_province %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <h3>🗺 {{ indicator_label | default(indicator) }} by Province</h3>
+  <div id="chartByProvince" style="min-height:280px;"></div>
+</div>
+{% endif %}
+
+<div class="chart-box" style="margin-bottom:20px;">
+  <h3>🔍 Key Findings</h3>
+  <ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:10px;">
+    <li style="display:flex;gap:10px;align-items:flex-start;">
+      <span style="font-size:1.1rem;margin-top:1px;">📌</span>
+      <span style="font-size:0.88rem;color:#4a5568;line-height:1.6;">
+        {% if insights and insights.finding_1 %}
+          {{ insights.finding_1 }}
+        {% else %}
+          <strong>Highest burden district:</strong>
+          {% if insights and insights.worst_district %}
+            {{ insights.worst_district }} records {{ insights.worst_pct | default('elevated') }} {{ indicator | default('stunting') }},
+            significantly above the national average.
+          {% else %}
+            District-level variation analysis pending data refresh.
+          {% endif %}
+        {% endif %}
+      </span>
+    </li>
+    <li style="display:flex;gap:10px;align-items:flex-start;">
+      <span style="font-size:1.1rem;margin-top:1px;">📌</span>
+      <span style="font-size:0.88rem;color:#4a5568;line-height:1.6;">
+        {% if insights and insights.finding_2 %}
+          {{ insights.finding_2 }}
+        {% else %}
+          <strong>SES gradient:</strong>
+          Children in low SES households face disproportionately higher rates of malnutrition,
+          underscoring the role of poverty in nutrition outcomes.
+        {% endif %}
+      </span>
+    </li>
+    <li style="display:flex;gap:10px;align-items:flex-start;">
+      <span style="font-size:1.1rem;margin-top:1px;">📌</span>
+      <span style="font-size:0.88rem;color:#4a5568;line-height:1.6;">
+        {% if insights and insights.finding_3 %}
+          {{ insights.finding_3 }}
+        {% else %}
+          <strong>Trend direction:</strong>
+          {% if insights and insights.best_district %}
+            {{ insights.best_district }} shows the most improvement across survey rounds,
+            suggesting effective local interventions.
+          {% else %}
+            Longitudinal trend analysis requires at least two completed survey rounds.
+          {% endif %}
+        {% endif %}
+      </span>
+    </li>
+  </ul>
+</div>
+
+<!-- ── DQ Note ── -->
+{% if dq_notes %}
+<div class="alert-warn">
+  ⚠ <strong>Data Quality Note:</strong> {{ dq_notes }}
+</div>
+{% endif %}
+
+<script>
+{% if charts and charts.by_district_round %}
+(function() {
+  var spec = {{ charts.by_district_round | safe }};
+  Plotly.newPlot('chartByDistrict', spec.data, spec.layout || {}, {responsive:true, displayModeBar:false});
+})();
+{% endif %}
+{% if charts and charts.trend %}
+(function() {
+  var spec = {{ charts.trend | safe }};
+  Plotly.newPlot('chartTrend', spec.data, spec.layout || {}, {responsive:true, displayModeBar:false});
+})();
+{% endif %}
+{% if charts and charts.by_ses %}
+(function() {
+  var spec = {{ charts.by_ses | safe }};
+  Plotly.newPlot('chartBySes', spec.data, spec.layout || {}, {responsive:true, displayModeBar:false});
+})();
+{% endif %}
+{% if charts and charts.double_burden %}
+(function() {
+  var spec = {{ charts.double_burden | safe }};
+  Plotly.newPlot('chartDoubleBurden', spec.data, spec.layout || {}, {responsive:true, displayModeBar:false});
+})();
+{% endif %}
+{% if charts and charts.by_province %}
+(function() {
+  var spec = {{ charts.by_province | safe }};
+  Plotly.newPlot('chartByProvince', spec.data, spec.layout || {}, {responsive:true, displayModeBar:false});
+})();
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+{% block title %}Data Pipeline{% endblock %}
+{% block story_headline %}&#9881; Medallion ETL Pipeline &mdash; Bronze &rarr; Silver &rarr; Gold | Full Data Lineage &amp; Run History{% endblock %}
+{% block content %}
+
+<h1>&#9881; Data Pipeline &mdash; Medallion Architecture</h1>
+<p class="sub">Bronze &rarr; Silver &rarr; Gold &nbsp;|&nbsp; Full Load / Incremental / CDC / SCD2 / Windowing / Delta Log</p>
+
+<!-- Architecture Banner -->
+<div style="background:linear-gradient(135deg,#1a202c,#2d3748);color:#e2e8f0;border-radius:10px;padding:22px 26px;margin-bottom:24px;">
+  <h3 style="color:#90cdf4;margin-bottom:10px;font-size:1rem;">&#127959; The 3-Layer Data Journey</h3>
+  <p style="font-size:0.88rem;line-height:1.8;margin:0;color:#cbd5e0;">
+    Raw survey data enters the <strong style="color:#cd7f32;">Bronze layer</strong> as-is &mdash; exact copy, metadata added, no transformation.
+    The <strong style="color:#a0aec0;">Silver layer</strong> applies 10 DQ cleaning rules: bilingual normalisation, deduplication, schema evolution, CDC tagging.
+    The <strong style="color:#f6e05e;">Gold layer</strong> produces SCD2 dimensions, fact tables, and windowed KPI aggregations consumed by Flask, Streamlit, Power BI, and Tableau.
+    Every run is logged in the <strong style="color:#68d391;">Delta Log</strong> with watermarks, checksums, and lineage metadata.
+  </p>
+</div>
+
+<!-- Layer Cards -->
+<div class="layer-cards">
+  <div class="layer-card" style="border-top:4px solid #cd7f32;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span style="font-size:1.8rem;">&#129353;</span>
+      <div><div style="font-weight:700;font-size:1rem;color:#7b4f12;">Bronze Layer</div>
+      <div style="font-size:0.75rem;color:#718096;">Raw ingestion &mdash; exact copy + metadata</div></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:12px;">
+      <div><div style="font-size:0.72rem;color:#718096;text-transform:uppercase;">Files</div>
+      <div style="font-size:1.4rem;font-weight:700;">{{ layers.bronze.files | default(0) }}</div></div>
+      <div><div style="font-size:0.72rem;color:#718096;text-transform:uppercase;">Size</div>
+      <div style="font-size:1.4rem;font-weight:700;">{{ layers.bronze.size_kb | default(0) }} KB</div></div>
+    </div>
+    {% if layers.bronze.names %}
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+      {% for n in layers.bronze.names[:8] %}<span class="badge badge-amber" style="font-size:0.65rem;">{{ n[:22] }}</span>{% endfor %}
+    </div>{% endif %}
+    <span class="badge {% if layers.bronze.files > 0 %}badge-green{% else %}badge-gray{% endif %}">
+      {% if layers.bronze.files > 0 %}&#10003; Active{% else %}Empty{% endif %}
+    </span>
+  </div>
+
+  <div class="layer-card" style="border-top:4px solid #a0aec0;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span style="font-size:1.8rem;">&#129352;</span>
+      <div><div style="font-weight:700;font-size:1rem;color:#4a5568;">Silver Layer</div>
+      <div style="font-size:0.75rem;color:#718096;">Cleaned, validated, CDC-tagged</div></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:12px;">
+      <div><div style="font-size:0.72rem;color:#718096;text-transform:uppercase;">Files</div>
+      <div style="font-size:1.4rem;font-weight:700;">{{ layers.silver.files | default(0) }}</div></div>
+      <div><div style="font-size:0.72rem;color:#718096;text-transform:uppercase;">Size</div>
+      <div style="font-size:1.4rem;font-weight:700;">{{ layers.silver.size_kb | default(0) }} KB</div></div>
+    </div>
+    {% if layers.silver.names %}
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+      {% for n in layers.silver.names[:8] %}<span class="badge badge-gray" style="font-size:0.65rem;">{{ n[:22] }}</span>{% endfor %}
+    </div>{% endif %}
+    <span class="badge {% if layers.silver.files > 0 %}badge-green{% else %}badge-gray{% endif %}">
+      {% if layers.silver.files > 0 %}&#10003; Active{% else %}Empty{% endif %}
+    </span>
+  </div>
+
+  <div class="layer-card" style="border-top:4px solid #d69e2e;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span style="font-size:1.8rem;">&#129351;</span>
+      <div><div style="font-weight:700;font-size:1rem;color:#744210;">Gold Layer</div>
+      <div style="font-size:0.75rem;color:#718096;">Facts, dims, KPIs &mdash; analysis-ready</div></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:12px;">
+      <div><div style="font-size:0.72rem;color:#718096;text-transform:uppercase;">Files</div>
+      <div style="font-size:1.4rem;font-weight:700;">{{ layers.gold.files | default(0) }}</div></div>
+      <div><div style="font-size:0.72rem;color:#718096;text-transform:uppercase;">Size</div>
+      <div style="font-size:1.4rem;font-weight:700;">{{ layers.gold.size_kb | default(0) }} KB</div></div>
+    </div>
+    {% if layers.gold.names %}
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+      {% for n in layers.gold.names[:8] %}<span class="badge badge-blue" style="font-size:0.65rem;">{{ n[:22] }}</span>{% endfor %}
+    </div>{% endif %}
+    <span class="badge {% if layers.gold.files > 0 %}badge-green{% else %}badge-gray{% endif %}">
+      {% if layers.gold.files > 0 %}&#10003; Active{% else %}Empty{% endif %}
+    </span>
+  </div>
+</div>
+
+<!-- ETL Flow -->
+<div class="etl-flow">
+  <div class="etl-stage"><div style="font-size:1.4rem;">&#128196;</div>
+    <div style="font-weight:700;font-size:0.85rem;margin-top:4px;">Raw</div>
+    <div style="font-size:0.75rem;color:#718096;">{{ dq_journey.raw | default(0) }} files</div></div>
+  <div class="etl-arrow">&rarr;</div>
+  <div class="etl-stage" style="border-top:3px solid #cd7f32;"><div style="font-size:1.4rem;">&#129353;</div>
+    <div style="font-weight:700;font-size:0.85rem;margin-top:4px;">Bronze</div>
+    <div style="font-size:0.75rem;color:#718096;">{{ dq_journey.bronze | default(0) }} datasets</div></div>
+  <div class="etl-arrow">&rarr;</div>
+  <div class="etl-stage" style="border-top:3px solid #a0aec0;"><div style="font-size:1.4rem;">&#129352;</div>
+    <div style="font-weight:700;font-size:0.85rem;margin-top:4px;">Silver</div>
+    <div style="font-size:0.75rem;color:#718096;">{{ dq_journey.silver | default(0) }} datasets</div></div>
+  <div class="etl-arrow">&rarr;</div>
+  <div class="etl-stage" style="border-top:3px solid #d69e2e;"><div style="font-size:1.4rem;">&#129351;</div>
+    <div style="font-weight:700;font-size:0.85rem;margin-top:4px;">Gold</div>
+    <div style="font-size:0.75rem;color:#718096;">{{ dq_journey.gold | default(0) }} datasets</div></div>
+  <div class="etl-arrow">&rarr;</div>
+  <div class="etl-stage" style="border-top:3px solid #553c9a;"><div style="font-size:1.4rem;">&#128202;</div>
+    <div style="font-weight:700;font-size:0.85rem;margin-top:4px;">Analytics</div>
+    <div style="font-size:0.75rem;color:#718096;">Flask / Streamlit / API</div></div>
+</div>
+
+<!-- ── Path Info (always visible for debugging) ── -->
+{% if path_info %}
+<div class="alert-info" style="margin-bottom:20px;font-size:0.82rem;">
+  &#128193; <strong>Server Paths:</strong>
+  &nbsp; App root: <code>{{ path_info.app_root }}</code>
+  &nbsp;|&nbsp; Package: <code>{{ path_info.pkg_dir }}</code>
+  &nbsp;|&nbsp; Data: <code>{{ path_info.data_base }}</code>
+</div>
+{% endif %}
+
+<!-- ── Bronze Layer Dataset Stats (before Silver/Gold) ── -->
+{% if layers.bronze and layers.bronze.dataset_stats %}
+<div class="chart-box" style="margin-bottom:20px;border-top:4px solid #cd7f32;">
+  <h3>&#129353; Bronze Layer &mdash; Raw Ingestion Stats
+    <span style="font-size:0.75rem;color:#718096;font-weight:400;">
+      (exact copy + metadata &mdash; {{ layers.bronze.files }} files, {{ layers.bronze.size_kb }} KB)
+    </span>
+  </h3>
+  <p style="font-size:0.82rem;color:#718096;margin-bottom:12px;">
+    Bronze is the landing zone: every source file is copied as-is with lineage metadata added.
+    No transformation. These row counts are the raw input before any cleaning.
+  </p>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead><tr>
+        <th>Dataset</th><th>File</th><th>Era</th>
+        <th style="text-align:right;">Rows</th>
+        <th style="text-align:right;">Cols</th>
+        <th style="text-align:right;">Size (KB)</th>
+      </tr></thead>
+      <tbody>
+        {% for ds in layers.bronze.dataset_stats %}
+        <tr>
+          <td><strong style="font-size:0.85rem;">{{ ds.name }}</strong></td>
+          <td><code style="font-size:0.75rem;background:#fef3c7;padding:1px 5px;border-radius:3px;">{{ ds.file }}</code></td>
+          <td>
+            {% if ds.era == "current" %}
+              <span class="badge badge-green">current</span>
+            {% elif ds.era == "historical" %}
+              <span class="badge badge-blue">historical</span>
+            {% else %}
+              <span class="badge badge-amber">{{ ds.era }}</span>
+            {% endif %}
+          </td>
+          <td style="text-align:right;font-weight:600;">
+            {% if ds.rows == "?" %}
+              <span style="color:#a0aec0;">?</span>
+            {% else %}
+              {{ "{:,}".format(ds.rows) }}
+            {% endif %}
+          </td>
+          <td style="text-align:right;color:#718096;">{{ ds.cols }}</td>
+          <td style="text-align:right;color:#718096;">{{ ds.size_kb }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="background:#fef3c7;font-weight:700;">
+          <td colspan="3">Total</td>
+          <td style="text-align:right;">
+            {% set total_rows = namespace(val=0) %}
+            {% for ds in layers.bronze.dataset_stats %}
+              {% if ds.rows != "?" %}{% set total_rows.val = total_rows.val + ds.rows %}{% endif %}
+            {% endfor %}
+            {{ "{:,}".format(total_rows.val) }}
+          </td>
+          <td></td>
+          <td style="text-align:right;">{{ layers.bronze.size_kb }} KB</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% elif layers.bronze and layers.bronze.files == 0 %}
+<div class="alert-warn" style="margin-bottom:20px;">
+  &#9888; <strong>Bronze layer is empty.</strong>
+  Click <strong>Generate Data</strong> then <strong>Run ETL Pipeline</strong> below.
+</div>
+{% endif %}
+
+<!-- Run History -->
+{% if run_history %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <h3>&#128203; Pipeline Run History <span style="font-size:0.75rem;color:#718096;font-weight:400;">(from delta log)</span></h3>
+  {% if dq_journey and dq_journey.last_run_id %}
+  <div style="background:#f0fff4;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:0.82rem;color:#276749;border-left:3px solid #38a169;">
+    Last run: <strong>{{ dq_journey.last_run_id }}</strong> at {{ dq_journey.last_run_ts }}
+    &mdash; completed in <strong>{{ dq_journey.last_elapsed }}</strong>
+    &mdash; Bronze: {{ dq_journey.bronze }}, Silver: {{ dq_journey.silver }}, Gold: {{ dq_journey.gold }} datasets
+  </div>
+  {% endif %}
+  <div style="overflow-x:auto;">
+    <table>
+      <thead><tr>
+        <th>Run ID</th><th>Timestamp</th><th>Load Mode</th>
+        <th>Bronze</th><th>Gold</th><th>Duration</th><th>Status</th>
+      </tr></thead>
+      <tbody>
+        {% for row in run_history %}
+        <tr>
+          <td><code style="font-size:0.78rem;background:#edf2f7;padding:2px 6px;border-radius:3px;">{{ row.run_id }}</code></td>
+          <td style="font-size:0.82rem;">{{ row.timestamp }}</td>
+          <td><span class="badge {% if row.stage == "full_load" %}badge-blue{% else %}badge-green{% endif %}">{{ row.stage }}</span></td>
+          <td style="text-align:center;">{{ row.records_in }}</td>
+          <td style="text-align:center;">{{ row.records_out }}</td>
+          <td style="font-size:0.82rem;font-weight:600;">{{ row.duration }}</td>
+          <td>{% if row.status == "success" %}<span class="badge badge-green">&#10003; Success</span>
+              {% elif row.status == "failed" %}<span class="badge badge-red">&#10007; Failed</span>
+              {% else %}<span class="badge badge-gray">{{ row.status }}</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="alert-info" style="margin-bottom:20px;">
+  &#9432; No pipeline runs recorded yet. Click <strong>Run ETL Pipeline</strong> below to start the first run.
+</div>
+{% endif %}
+
+<!-- Gold Datasets -->
+{% if dq_journey and dq_journey.gold_rows %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <h3>&#129351; Gold Layer &mdash; Analysis-Ready Datasets</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;">
+    {% for name, rows in dq_journey.gold_rows.items() %}
+    <div style="background:#fefcbf;border-radius:6px;padding:12px;border-left:3px solid #d69e2e;">
+      <div style="font-size:0.68rem;color:#718096;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">{{ name }}</div>
+      <div style="font-size:1.3rem;font-weight:700;color:#744210;">{{ "{:,}".format(rows) }}</div>
+      <div style="font-size:0.72rem;color:#718096;margin-top:2px;">rows</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Dataset Status -->
+{% if status_table %}
+<div class="chart-box" style="margin-bottom:20px;">
+  <h3>&#128202; Dataset Status (Silver + Gold)</h3>
+  <div style="overflow-x:auto;">{{ status_table | safe }}</div>
+</div>
+{% endif %}
+
+<!-- Action Buttons -->
+<div class="chart-box">
+  <h3>&#128640; Pipeline Actions</h3>
+  <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;">
+    <button class="btn-etl" onclick="runETL()" style="padding:10px 20px;font-size:0.9rem;">
+      &#9881; Run ETL Pipeline
+    </button>
+    <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
+      <div>
+        <label style="display:block;font-size:0.78rem;font-weight:600;color:#4a5568;margin-bottom:4px;">Records</label>
+        <input type="number" id="genCount" value="100" min="10" max="50000" step="10"
+               style="width:90px;padding:8px 10px;border:1px solid #cbd5e0;border-radius:5px;font-size:0.85rem;">
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding-bottom:8px;">
+        <input type="checkbox" id="injectDQ" style="width:16px;height:16px;cursor:pointer;">
+        <label for="injectDQ" style="font-size:0.82rem;color:#4a5568;cursor:pointer;">Inject DQ issues</label>
+      </div>
+      <button class="btn-gen" onclick="runGenerator()" style="padding:10px 20px;font-size:0.9rem;">
+        &#127922; Generate Data
+      </button>
+    </div>
+    <a href="/publichealth/api/v1/" target="_blank"
+       style="display:inline-block;padding:10px 20px;background:#e2e8f0;color:#2d3748;border-radius:5px;font-size:0.88rem;text-decoration:none;font-weight:600;">
+      &#128225; API Discovery
+    </a>
+    <a href="/publichealth/api/v1/kpis" target="_blank"
+       style="display:inline-block;padding:10px 20px;background:#ebf8ff;color:#2b6cb0;border-radius:5px;font-size:0.88rem;text-decoration:none;font-weight:600;">
+      &#128202; KPIs JSON
+    </a>
+  </div>
+</div>
+
+<script>
+function runGenerator() {
+  var count = parseInt(document.getElementById("genCount").value) || 100;
+  var injectDQ = document.getElementById("injectDQ").checked;
+  if (count < 10 || count > 50000) {
+    toast("Records must be between 10 and 50,000", "warn");
+    return;
+  }
+  progress(20);
+  toast("Generating " + count.toLocaleString() + " records in background...", "info");
+  fetch(BASE + "/api/generate", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({count: count, inject_dq: injectDQ})
+  })
+  .then(function(r) {
+    var ct = r.headers.get("content-type") || "";
+    if (ct.indexOf("json") === -1) {
+      return r.text().then(function(t) {
+        throw new Error("Server error: " + t.substring(0, 120));
+      });
+    }
+    return r.json();
+  })
+  .then(function(d) {
+    progress(100);
+    var status = d.status || "ok";
+    if (status === "started") {
+      toast(d.message || "Generation started. Run ETL in ~30s.", "info");
+    } else if (status === "ok") {
+      toast(d.message || "Generated " + count.toLocaleString() + " records.", "success");
+      setTimeout(function() { location.reload(); }, 2000);
+    } else {
+      toast("Error: " + (d.message || "Unknown error"), "error");
+    }
+  })
+  .catch(function(e) {
+    progress(100);
+    toast("Generate error: " + e.message, "error");
+  });
+}
+</script>
+{% endblock %}

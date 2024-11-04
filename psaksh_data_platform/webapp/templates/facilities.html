@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Facility Readiness{% endblock %}
+{% block story_headline %}🏥 Facility Readiness — Infrastructure, Staffing &amp; Supply Chain across 108 Health Facilities{% endblock %}
+{% block content %}
+
+<h1>🏥 Facility Readiness</h1>
+<p class="sub">DHQ, RHC and BHU assessments across 36 districts — readiness scores, staffing gaps, and commodity stock-outs</p>
+
+<!-- Narrative callout -->
+<div class="chart-box" style="border-left:4px solid #c05621;background:#fffaf0;margin-bottom:20px;">
+  <p style="font-size:0.9rem;color:#4a5568;line-height:1.7;margin:0;">
+    <strong style="color:#c05621;">Facility Readiness Scoring:</strong>
+    Each facility is scored 0–100 based on <strong>staffing</strong> (present vs. required),
+    <strong>infrastructure</strong> (electricity, water, sanitation), and
+    <strong>essential medicines</strong> (ORS, Zinc, Amoxicillin, Iron-Folate, Vitamin A, Oxytocin).
+    Facilities scoring below <strong>60%</strong> are classified as "not ready" and prioritised for
+    supply-chain and HR interventions. BHUs in Balochistan consistently score lowest.
+  </p>
+</div>
+
+<!-- Charts 2x2 -->
+<div class="chart-grid-2">
+  <div class="chart-box">
+    <h3>📊 Readiness Score by District &amp; Round</h3>
+    {% if charts and charts.readiness %}
+    <div id="chartReadiness" style="min-height:320px;"></div>
+    {% else %}
+    <div style="height:280px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">📭</span><span style="font-size:0.85rem;">No readiness data available</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="chart-box">
+    <h3>💊 Stock-out Rate by Commodity</h3>
+    {% if charts and charts.stockout %}
+    <div id="chartStockout" style="min-height:320px;"></div>
+    {% else %}
+    <div style="height:280px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">📭</span><span style="font-size:0.85rem;">No stock-out data available</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="chart-box">
+    <h3>🏗 Average Readiness by Facility Type</h3>
+    {% if charts and charts.by_type %}
+    <div id="chartByType" style="min-height:260px;"></div>
+    {% else %}
+    <div style="height:240px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">📭</span><span style="font-size:0.85rem;">No facility type data available</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="chart-box">
+    <h3>🗺 Readiness by Province</h3>
+    {% if charts and charts.by_province %}
+    <div id="chartByProvince" style="min-height:260px;"></div>
+    {% else %}
+    <div style="height:240px;display:flex;align-items:center;justify-content:center;color:#a0aec0;flex-direction:column;gap:8px;">
+      <span style="font-size:2rem;">📭</span><span style="font-size:0.85rem;">No province data available</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+var _cfg = {responsive:true, displayModeBar:false};
+{% if charts and charts.readiness %}
+(function(){var s={{ charts.readiness|safe }};Plotly.newPlot("chartReadiness",s.data,s.layout||{},_cfg);})();
+{% endif %}
+{% if charts and charts.stockout %}
+(function(){var s={{ charts.stockout|safe }};Plotly.newPlot("chartStockout",s.data,s.layout||{},_cfg);})();
+{% endif %}
+{% if charts and charts.by_type %}
+(function(){var s={{ charts.by_type|safe }};Plotly.newPlot("chartByType",s.data,s.layout||{},_cfg);})();
+{% endif %}
+{% if charts and charts.by_province %}
+(function(){var s={{ charts.by_province|safe }};Plotly.newPlot("chartByProvince",s.data,s.layout||{},_cfg);})();
+{% endif %}
+</script>
+{% endblock %}
