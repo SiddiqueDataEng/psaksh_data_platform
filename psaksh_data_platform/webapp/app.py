@@ -1171,25 +1171,106 @@ def _run_cmd(cmd: list) -> tuple[bool, str]:
         return False, str(e)
 
 
+# ── Pipeline job log (in-memory, keyed by job_id) ────────────────────────────
+import collections as _collections
+_JOB_LOGS: dict = _collections.OrderedDict()   # job_id -> list[str]
+_MAX_JOBS = 20
+
+def _job_log(job_id: str, msg: str) -> None:
+    """Append a log line to a job's in-memory log."""
+    if job_id not in _JOB_LOGS:
+        if len(_JOB_LOGS) >= _MAX_JOBS:
+            _JOB_LOGS.popitem(last=False)
+        _JOB_LOGS[job_id] = []
+    _JOB_LOGS[job_id].append(msg)
+
+
+# ── SSE: stream job log to browser ───────────────────────────────────────────
+@app.route("/publichealth/pipeline-stream/<job_id>")
+@app.route("/pipeline-stream/<job_id>")
+def pipeline_stream(job_id: str):
+    """
+    Server-Sent Events endpoint — streams live log lines for a job.
+    Browser connects with EventSource('/publichealth/pipeline-stream/<job_id>').
+    """
+    import time as _time
+
+    def _generate():
+        sent = 0
+        # Stream for up to 5 minutes
+        for _ in range(600):
+            logs = _JOB_LOGS.get(job_id, [])
+            while sent < len(logs):
+                line = logs[sent].replace("\n", " ")
+                yield f"data: {line}\n\n"
+                sent += 1
+            if logs and logs[-1].startswith("DONE") or (logs and "Pipeline complete" in logs[-1]):
+                yield "data: __DONE__\n\n"
+                return
+            _time.sleep(0.5)
+        yield "data: __TIMEOUT__\n\n"
+
+    from flask import Response
+    return Response(_generate(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# ── GET: job log as JSON ──────────────────────────────────────────────────────
+@app.route("/publichealth/api/job-log/<job_id>")
+@app.route("/api/job-log/<job_id>")
+def api_job_log(job_id: str):
+    logs = _JOB_LOGS.get(job_id, [])
+    done = bool(logs and ("DONE" in logs[-1] or "Pipeline complete" in logs[-1] or "complete" in logs[-1].lower()))
+    return jsonify({"job_id": job_id, "lines": logs, "done": done})
+
+
+# ── Data Generator (parametrized) ────────────────────────────────────────────
 @app.route("/publichealth/run-generator", methods=["POST"])
 @app.route("/run-generator", methods=["POST"])
 def run_generator():
-    """Generate synthetic data in background thread — returns immediately."""
-    import threading
-    try:
-        body      = request.get_json(silent=True) or {}
-        count     = max(10, min(int(body.get("count", 500)), 50000))
-        inject_dq = bool(body.get("inject_dq_issues") or body.get("inject_dq"))
-    except Exception:
-        count     = 500
-        inject_dq = False
+    """
+    Generate synthetic data in a background thread.
+    Accepts JSON: {count, min_records, max_records, start_date, end_date,
+                   rounds, seed, inject_dq}
+    Returns immediately with job_id for SSE streaming.
+    """
+    import threading, uuid as _uuid
+    body = request.get_json(silent=True) or {}
 
-    def _do_gen(count=count, inject_dq=inject_dq):
+    # Resolve count
+    try:
+        count = int(body.get("count") or 0)
+    except Exception:
+        count = 0
+    try:
+        min_r = int(body.get("min_records") or 0) or None
+        max_r = int(body.get("max_records") or 0) or None
+    except Exception:
+        min_r = max_r = None
+
+    if not count and not min_r and not max_r:
+        count = 500
+
+    start_date = body.get("start_date") or None
+    end_date   = body.get("end_date")   or None
+    rounds     = max(1, min(int(body.get("rounds", 4)), 12))
+    seed       = int(body.get("seed")) if body.get("seed") else None
+    inject_dq  = bool(body.get("inject_dq_issues") or body.get("inject_dq", True))
+
+    job_id = _uuid.uuid4().hex[:8].upper()
+    _JOB_LOGS[job_id] = []
+
+    def _log(msg):
+        _job_log(job_id, msg)
+
+    def _do_gen():
+        import importlib, pandas as pd, time as _t
+        t0 = _t.time()
         try:
             for _p in [str(ROOT_DIR), str(PKG_DIR)]:
                 if _p not in sys.path:
                     sys.path.insert(0, _p)
-            import importlib, pandas as pd
+
             gen_mod = None
             for mod_path in ["psaksh_data_platform.data_generator.generators",
                              "data_generator.generators"]:
@@ -1201,14 +1282,56 @@ def run_generator():
             if gen_mod is None:
                 raise ImportError("Cannot import data_generator.generators")
 
+            import numpy as np
+            rng = np.random.default_rng(seed)
+            if count:
+                n = max(10, min(count, 50000))
+            elif min_r and max_r:
+                n = int(rng.integers(min_r, max_r + 1))
+            elif min_r:
+                n = min_r
+            elif max_r:
+                n = max_r
+            else:
+                n = 500
+
+            _log(f"[GEN] Starting data generation  job={job_id}")
+            _log(f"[GEN] Households    : {n:,}")
+            _log(f"[GEN] Date range    : {start_date or 'default'}  to  {end_date or 'default'}")
+            _log(f"[GEN] Rounds        : {rounds}")
+            _log(f"[GEN] Seed          : {seed or 'random'}")
+            _log(f"[GEN] DQ injection  : {'ON' if inject_dq else 'OFF'}")
+
             raw_dir = PKG_DIR / "data" / "raw" / "current"
             raw_dir.mkdir(parents=True, exist_ok=True)
 
-            hh        = gen_mod.generate_households(count)
-            visits    = gen_mod.generate_followup_visits(hh, rounds=4)
-            fac       = gen_mod.generate_facility_assessments(rounds=4)
-            perf      = gen_mod.generate_enumerator_performance(visits)
-            backcheck = gen_mod.generate_backcheck_records(visits)
+            _log("[1/5] Generating households...")
+            hh = gen_mod.generate_households(
+                n, start_date=start_date, end_date=end_date, seed=seed)
+            _log(f"      {len(hh):,} households generated")
+
+            _log("[2/5] Generating follow-up visits...")
+            visits = gen_mod.generate_followup_visits(
+                hh, rounds=rounds, start_date=start_date, end_date=end_date, seed=seed)
+            child_n    = int((visits["record_type"] == "child").sum())
+            maternal_n = int((visits["record_type"] == "maternal").sum())
+            _log(f"      {len(visits):,} visits  ({child_n:,} child, {maternal_n:,} maternal)")
+
+            _log("[3/5] Generating facility assessments...")
+            fac = gen_mod.generate_facility_assessments(
+                rounds=rounds, start_date=start_date, end_date=end_date, seed=seed)
+            _log(f"      {len(fac):,} facility records")
+
+            _log("[4/5] Generating enumerator performance logs...")
+            perf = gen_mod.generate_enumerator_performance(
+                visits, start_date=start_date, end_date=end_date, seed=seed)
+            _log(f"      {len(perf):,} performance records")
+
+            _log("[5/5] Generating back-check records...")
+            backcheck = gen_mod.generate_backcheck_records(visits, seed=seed)
+            _log(f"      {len(backcheck):,} back-check records")
+
+            _log("[SAVE] Writing Parquet files to raw/current/...")
 
             def _append(df, name):
                 path = raw_dir / f"{name}.parquet"
@@ -1218,81 +1341,181 @@ def run_generator():
                         df_c[col] = df_c[col].astype(str).replace("None", pd.NA).replace("nan", pd.NA)
                     if path.exists():
                         existing = pd.read_parquet(path)
-                        pd.concat([existing, df_c], ignore_index=True).to_parquet(path, index=False)
+                        combined = pd.concat([existing, df_c], ignore_index=True)
+                        combined.to_parquet(path, index=False)
+                        _log(f"      {name}.parquet: appended {len(df):,} rows (total {len(combined):,})")
                     else:
                         df_c.to_parquet(path, index=False)
-                except Exception:
-                    csv_path = raw_dir / f"{name}.csv"
-                    if csv_path.exists():
-                        existing = pd.read_csv(csv_path, low_memory=False)
-                        pd.concat([existing, df], ignore_index=True).to_csv(csv_path, index=False)
-                    else:
-                        df.to_csv(csv_path, index=False)
+                        _log(f"      {name}.parquet: created {len(df):,} rows")
+                except Exception as e:
+                    _log(f"      {name}: parquet failed ({e}), using CSV")
+                    df.to_csv(raw_dir / f"{name}.csv", index=False)
 
             _append(hh,        "households")
             _append(visits,    "followup_visits")
             _append(fac,       "facility_assessments")
             _append(perf,      "enumerator_performance")
             _append(backcheck, "backcheck_records")
+
+            elapsed = _t.time() - t0
+            _log(f"DONE Generation complete in {elapsed:.1f}s")
+            _log(f"     {n:,} households | {len(visits):,} visits | {len(fac):,} facilities")
+            _log(f"     Files saved to: {raw_dir}")
+            _log("     Next: click Run ETL Pipeline to process into Bronze/Silver/Gold")
+
         except Exception:
-            import traceback, logging
-            logging.getLogger(__name__).error(
-                "Generator background error:\n" + traceback.format_exc())
+            import traceback
+            _log(f"ERROR {traceback.format_exc()[-500:]}")
 
     threading.Thread(target=_do_gen, daemon=True).start()
     return jsonify({
         "status":  "started",
-        "message": f"Generating {count:,} households in background. "
-                   "Data will be appended to raw/current/. "
-                   "Run ETL Pipeline after ~30 seconds to process into Gold."
+        "job_id":  job_id,
+        "message": f"Data generation started (job {job_id}). Stream progress at /pipeline-stream/{job_id}",
     }), 200
+
 
 @app.route("/publichealth/api/generate", methods=["POST"])
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
-    """Alias for run-generator â€” called by the survey and pipeline pages."""
+    """Alias for run-generator."""
     return run_generator()
 
 
+# ── ETL Pipeline — full or step-by-step ──────────────────────────────────────
 @app.route("/publichealth/run-pipeline", methods=["POST"])
 @app.route("/run-pipeline", methods=["POST"])
 def run_pipeline():
-    """Run ETL pipeline in background thread — returns immediately."""
-    import threading
+    """
+    Run full Bronze->Silver->Gold pipeline in background.
+    Accepts JSON: {step: "all"|"bronze"|"silver"|"gold", force_full: bool}
+    Returns job_id for SSE streaming.
+    """
+    import threading, uuid as _uuid
+    body      = request.get_json(silent=True) or {}
+    step      = body.get("step", "all")          # "all", "bronze", "silver", "gold"
+    force     = bool(body.get("force_full", False))
+    job_id    = _uuid.uuid4().hex[:8].upper()
+    _JOB_LOGS[job_id] = []
+
+    def _log(msg):
+        _job_log(job_id, msg)
+
+    def _import_medallion():
+        import importlib
+        for mod_path in ["psaksh_data_platform.etl.medallion", "etl.medallion"]:
+            try:
+                return importlib.import_module(mod_path)
+            except ImportError:
+                continue
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("medallion", PKG_DIR / "etl" / "medallion.py")
+        mod  = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
 
     def _do_etl():
+        import time as _t, json as _json
+        t0 = _t.time()
         try:
             for _p in [str(ROOT_DIR), str(PKG_DIR)]:
                 if _p not in sys.path:
                     sys.path.insert(0, _p)
-            import importlib
-            run_fn = None
-            for mod_path in ["psaksh_data_platform.etl.medallion", "etl.medallion"]:
-                try:
-                    mod = importlib.import_module(mod_path)
-                    run_fn = mod.run_medallion
-                    break
-                except ImportError:
-                    continue
-            if run_fn is None:
-                import importlib.util
-                spec = importlib.util.spec_from_file_location(
-                    "medallion", PKG_DIR / "etl" / "medallion.py")
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
-                run_fn = mod.run_medallion
-            run_fn(PKG_DIR / "data")
+
+            med   = _import_medallion()
+            data_base = PKG_DIR / "data"
+            layers    = med.layer_dirs(data_base)
+            state     = med._load_delta_log(layers["delta_log"])
+
+            _log(f"[ETL] Pipeline started  job={job_id}  step={step}  force={force}")
+            _log(f"[ETL] Data base: {data_base}")
+
+            bronze = silver = gold = {}
+
+            if step in ("all", "bronze"):
+                _log("")
+                _log("[BRONZE] Ingesting raw sources...")
+                _log("         Scanning: raw/historical/ + raw/current/ + raw/")
+                bronze = med.ingest_bronze(layers["raw"], layers["bronze"], state, force)
+                for name, df in bronze.items():
+                    era = df["_source_era"].iloc[0] if "_source_era" in df.columns else "?"
+                    _log(f"         {name:35s}: {len(df):>7,} rows  [{era}]")
+                _log(f"[BRONZE] Complete — {len(bronze)} datasets ingested")
+
+            if step in ("all", "silver"):
+                if not bronze:
+                    _log("[SILVER] Loading bronze from disk...")
+                    import pandas as pd
+                    for f in sorted(layers["bronze"].glob("*.parquet")):
+                        try:
+                            bronze[f.stem] = pd.read_parquet(f)
+                        except Exception:
+                            pass
+                _log("")
+                _log("[SILVER] Applying schema evolution + DQ cleaning + CDC tagging...")
+                silver = med.transform_silver(bronze, layers["silver"], state)
+                for name, df in silver.items():
+                    cdc = df["_cdc_op"].value_counts().to_dict() if "_cdc_op" in df.columns else {}
+                    _log(f"         {name:35s}: {len(df):>7,} rows  CDC={cdc}")
+                _log(f"[SILVER] Complete — {len(silver)} datasets cleaned")
+
+            if step in ("all", "gold"):
+                if not silver:
+                    _log("[GOLD] Loading silver from disk...")
+                    import pandas as pd
+                    for f in sorted(layers["silver"].glob("*.parquet")):
+                        try:
+                            silver[f.stem] = pd.read_parquet(f)
+                        except Exception:
+                            pass
+                if not bronze:
+                    import pandas as pd
+                    for f in sorted(layers["bronze"].glob("*.parquet")):
+                        try:
+                            bronze[f.stem] = pd.read_parquet(f)
+                        except Exception:
+                            pass
+                _log("")
+                _log("[GOLD] Building SCD2 dims + fact tables + windowed KPIs...")
+                gold = med.build_gold(silver, bronze, layers["gold"])
+                for name, df in gold.items():
+                    _log(f"         {name:35s}: {len(df):>7,} rows")
+                _log(f"[GOLD] Complete — {len(gold)} datasets built")
+
+            # Update delta log
+            elapsed = _t.time() - t0
+            import uuid as _uuid2
+            run_id = _uuid2.uuid4().hex[:8].upper()
+            state.setdefault("run_history", []).append({
+                "run_id":          run_id,
+                "timestamp":       __import__("datetime").datetime.utcnow().isoformat(),
+                "load_mode":       "full_load" if force else "incremental",
+                "status":          "success",
+                "elapsed_s":       round(elapsed, 2),
+                "bronze_datasets": len(bronze),
+                "silver_datasets": len(silver),
+                "gold_datasets":   len(gold),
+                "gold_rows":       {n: len(d) for n, d in gold.items()},
+                "step":            step,
+            })
+            state["run_history"] = state["run_history"][-100:]
+            med._save_delta_log(state, layers["delta_log"])
+
+            _log("")
+            _log(f"Pipeline complete in {elapsed:.1f}s  [run_id={run_id}]")
+            _log(f"Bronze: {len(bronze)}  Silver: {len(silver)}  Gold: {len(gold)}")
+            _log("DONE Refresh the page to see updated data.")
+
         except Exception:
-            import traceback, logging
-            logging.getLogger(__name__).error(
-                "ETL background error:\n" + traceback.format_exc())
+            import traceback
+            _log(f"ERROR {traceback.format_exc()[-800:]}")
 
     threading.Thread(target=_do_etl, daemon=True).start()
     return jsonify({
         "status":  "started",
-        "message": "ETL pipeline started in background. "
-                   "Gold layer will be ready in ~60-120 seconds. "
-                   "Refresh the page to see updated data."
+        "job_id":  job_id,
+        "step":    step,
+        "message": f"ETL pipeline started (job {job_id}, step={step}). Stream at /pipeline-stream/{job_id}",
     }), 200
 
 @app.route("/publichealth/api/kpis")

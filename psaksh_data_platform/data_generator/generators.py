@@ -11,6 +11,13 @@ Instruments:
   4. Enumerator Performance Logs
   5. Back-check / Audit Records
 
+Parameters (all generators):
+  start_date  : ISO date string — earliest enrollment/visit date (default: STUDY_START_DATE)
+  end_date    : ISO date string — latest enrollment/visit date   (default: STUDY_END_DATE)
+  min_records : minimum records to generate (random between min and max)
+  max_records : maximum records to generate (random between min and max)
+  seed        : RNG seed for reproducibility (default: 42)
+
 Unique household IDs are guaranteed via UUID — no accidental duplicates.
 Deliberate DQ issues are injected at documented rates (see DQ_RATES in config).
 """
@@ -20,7 +27,7 @@ from __future__ import annotations
 import random
 import uuid
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -71,7 +78,41 @@ _PROVINCE_DISTRICTS = {p: [d["name"] for d in dlist]
 # Core helpers
 # ---------------------------------------------------------------------------
 
+def _resolve_count(
+    n: Optional[int],
+    min_records: Optional[int],
+    max_records: Optional[int],
+    default: int,
+    rng: np.random.Generator,
+) -> int:
+    """
+    Resolve final record count from explicit n or random between min/max.
+    Priority: n > random(min, max) > default
+    """
+    if n is not None:
+        return max(1, int(n))
+    if min_records is not None and max_records is not None:
+        lo = max(1, int(min_records))
+        hi = max(lo, int(max_records))
+        return int(rng.integers(lo, hi + 1))
+    if min_records is not None:
+        return max(1, int(min_records))
+    if max_records is not None:
+        return max(1, int(max_records))
+    return default
+
+
+def _make_rng(seed: Optional[int]) -> np.random.Generator:
+    """Create a fresh RNG — uses global RNG if no seed given."""
+    return np.random.default_rng(seed) if seed is not None else RNG
+
+
 def _random_date(start: str, end: str) -> datetime:
+    """Return a random datetime between two ISO date strings."""
+    s = datetime.strptime(start, "%Y-%m-%d")
+    e = datetime.strptime(end,   "%Y-%m-%d")
+    delta = max(1, (e - s).days)
+    return s + timedelta(days=int(RNG.integers(0, delta)))
     s = datetime.strptime(start, "%Y-%m-%d")
     e = datetime.strptime(end, "%Y-%m-%d")
     return s + timedelta(days=int(RNG.integers(0, (e - s).days)))
@@ -201,15 +242,44 @@ def _dq_enum_id(eid: str) -> str:
 # 1. Household Enrollment
 # ---------------------------------------------------------------------------
 
-def generate_households(n: int = 5000) -> pd.DataFrame:
+def generate_households(
+    n: Optional[int] = 5000,
+    *,
+    start_date:  Optional[str] = None,
+    end_date:    Optional[str] = None,
+    min_records: Optional[int] = None,
+    max_records: Optional[int] = None,
+    seed:        Optional[int] = None,
+) -> pd.DataFrame:
     """
-    Generate n household enrollment records covering all Pakistan districts.
+    Generate household enrollment records covering all Pakistan districts.
 
-    - Unique household IDs via UUID (no accidental duplicates)
-    - ~4.5% deliberate duplicate submissions (same HH, different timestamp)
-    - Province-proportional district sampling
-    - ~15% records have at least one DQ issue
+    Args:
+        n           : Exact number of households (overrides min/max if given).
+        start_date  : Earliest enrollment date YYYY-MM-DD (default: STUDY_START_DATE).
+        end_date    : Latest enrollment date YYYY-MM-DD   (default: STUDY_END_DATE).
+        min_records : Minimum households when using random count.
+        max_records : Maximum households when using random count.
+        seed        : RNG seed for reproducibility.
+
+    Returns:
+        DataFrame with one row per household (+ ~4.5% deliberate duplicates).
     """
+    rng    = _make_rng(seed)
+    n      = _resolve_count(n, min_records, max_records, 5000, rng)
+    _start = start_date or STUDY_START_DATE
+    _end   = end_date   or STUDY_END_DATE
+
+    # Validate / clamp dates
+    try:
+        _s = datetime.strptime(_start, "%Y-%m-%d")
+        _e = datetime.strptime(_end,   "%Y-%m-%d")
+        if _e <= _s:
+            _e = _s + timedelta(days=365)
+            _end = _e.strftime("%Y-%m-%d")
+    except ValueError:
+        _start, _end = STUDY_START_DATE, STUDY_END_DATE
+
     records: list[dict] = []
     seen_ids: set[str] = set()
 
@@ -241,7 +311,7 @@ def generate_households(n: int = 5000) -> pd.DataFrame:
             fac      = random.choice(facs)
             ses_tier = random.choices(SES_TIERS, weights=SES_WEIGHTS)[0]
             lat, lon = _gps_jitter(d_info["lat"], d_info["lon"])
-            enroll_dt = _random_date(STUDY_START_DATE, "2023-06-30")
+            enroll_dt = _random_date(_start, _end)
 
             hh_size  = int(RNG.integers(3, 14))
             children = int(RNG.integers(0, min(hh_size, 6)))
@@ -312,11 +382,24 @@ def generate_households(n: int = 5000) -> pd.DataFrame:
 # 2. Follow-up Visits (child + maternal)
 # ---------------------------------------------------------------------------
 
-def generate_followup_visits(households_df: pd.DataFrame, rounds: int = 4) -> pd.DataFrame:
+def generate_followup_visits(
+    households_df: pd.DataFrame,
+    rounds: int = 4,
+    *,
+    start_date:  Optional[str] = None,
+    end_date:    Optional[str] = None,
+    seed:        Optional[int] = None,
+) -> pd.DataFrame:
     """
     Generate quarterly follow-up visit records for each enrolled household.
 
-    - One child record per child under 5 per round
+    Args:
+        households_df : Output of generate_households().
+        rounds        : Number of follow-up rounds (default 4 = quarterly for 1 year).
+        start_date    : Override earliest visit date YYYY-MM-DD.
+        end_date      : Override latest visit date YYYY-MM-DD.
+        seed          : RNG seed for reproducibility.
+        - One child record per child under 5 per round
     - One maternal record per woman 15-49 per round
     - Province-specific prevalence rates
     - ~8% attrition per round (household not found)
@@ -492,11 +575,25 @@ def generate_followup_visits(households_df: pd.DataFrame, rounds: int = 4) -> pd
 # 3. Facility Assessments
 # ---------------------------------------------------------------------------
 
-def generate_facility_assessments(rounds: int = 4) -> pd.DataFrame:
+def generate_facility_assessments(
+    rounds: int = 4,
+    *,
+    start_date: Optional[str] = None,
+    end_date:   Optional[str] = None,
+    seed:       Optional[int] = None,
+) -> pd.DataFrame:
     """
     Generate facility assessment records for all 108 facilities across Pakistan.
-    Readiness scores vary by facility type and province.
+
+    Args:
+        rounds     : Number of assessment rounds (default 4).
+        start_date : Earliest assessment date YYYY-MM-DD.
+        end_date   : Latest assessment date YYYY-MM-DD.
+        seed       : RNG seed for reproducibility.
     """
+    rng    = _make_rng(seed)
+    _start = start_date or STUDY_START_DATE
+    _end   = end_date   or STUDY_END_DATE
     records: list[dict] = []
     commodities = ["ORS", "Zinc", "Amoxicillin", "Iron_Folate", "Vitamin_A",
                    "Oxytocin", "Misoprostol", "Magnesium_Sulphate"]
@@ -509,8 +606,8 @@ def generate_facility_assessments(rounds: int = 4) -> pd.DataFrame:
         adj  = prov_adj.get(fac["province"], 0)
 
         for rnd in range(1, rounds + 1):
-            assess_dt = _random_date(STUDY_START_DATE, STUDY_END_DATE)
-            score     = float(np.clip(RNG.normal(base + adj, 12), 5, 100))
+            assess_dt = _random_date(_start, _end)
+            score     = float(np.clip(rng.normal(base + adj, 12), 5, 100))
 
             # Stock-out probability higher in Balochistan/rural
             so_p = 0.40 if fac["province"] == "Balochistan" else 0.22
@@ -544,24 +641,31 @@ def generate_facility_assessments(rounds: int = 4) -> pd.DataFrame:
 # 4. Enumerator Performance Logs
 # ---------------------------------------------------------------------------
 
-def generate_enumerator_performance(households_df: pd.DataFrame) -> pd.DataFrame:
+def generate_enumerator_performance(
+    households_df: pd.DataFrame,
+    *,
+    start_date: Optional[str] = None,
+    end_date:   Optional[str] = None,
+    seed:       Optional[int] = None,
+) -> pd.DataFrame:
     """
     Generate daily performance logs for all 108 enumerators.
     Flags enumerators with short interviews or high back-check failure rates.
     """
+    rng   = _make_rng(seed)
     records: list[dict] = []
-    start = datetime.strptime(STUDY_START_DATE, "%Y-%m-%d")
-    end   = datetime.strptime(STUDY_END_DATE,   "%Y-%m-%d")
-    days  = (end - start).days
+    start = datetime.strptime(start_date or STUDY_START_DATE, "%Y-%m-%d")
+    end   = datetime.strptime(end_date   or STUDY_END_DATE,   "%Y-%m-%d")
+    days  = max(1, (end - start).days)
 
     for enum in ENUMERATORS:
         # Each enumerator works ~70% of days
         for day_offset in range(days):
-            if RNG.random() < 0.30:
+            if rng.random() < 0.30:
                 continue
             work_date = start + timedelta(days=day_offset)
-            subs      = int(RNG.integers(2, 14))
-            avg_dur   = float(RNG.normal(22, 7))
+            subs      = int(rng.integers(2, 14))
+            avg_dur   = float(rng.normal(22, 7))
             short_int = int(avg_dur < 15)
             flagged   = _bernoulli(0.07)
 
@@ -587,12 +691,18 @@ def generate_enumerator_performance(households_df: pd.DataFrame) -> pd.DataFrame
 def generate_backcheck_records(
     visits_df: pd.DataFrame,
     sample_rate: float = 0.10,
+    *,
+    seed: Optional[int] = None,
 ) -> pd.DataFrame:
     """
-    Generate back-check audit records for a random 10% sample of child visits.
-    Discrepancies beyond thresholds (±2 cm height, ±0.5 kg weight) flag the
-    original enumerator for retraining.
+    Generate back-check audit records for a random sample of child visits.
+
+    Args:
+        visits_df   : Output of generate_followup_visits().
+        sample_rate : Fraction of child visits to back-check (default 10%).
+        seed        : RNG seed for reproducibility.
     """
+    rng = _make_rng(seed)
     if visits_df.empty or "record_type" not in visits_df.columns:
         return pd.DataFrame()
 

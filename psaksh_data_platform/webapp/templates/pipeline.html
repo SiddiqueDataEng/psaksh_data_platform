@@ -251,78 +251,447 @@
 </div>
 {% endif %}
 
-<!-- Action Buttons -->
-<div class="chart-box">
-  <h3>&#128640; Pipeline Actions</h3>
-  <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;">
-    <button class="btn-etl" onclick="runETL()" style="padding:10px 20px;font-size:0.9rem;">
-      &#9881; Run ETL Pipeline
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- PIPELINE CONTROL CENTRE — parametrized, step-by-step, live terminal  -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="chart-box" style="margin-bottom:0;">
+  <h3>&#128640; Pipeline Control Centre
+    <span style="font-size:0.75rem;color:#718096;font-weight:400;">
+      — parametrized data generation + step-by-step ETL with live progress
+    </span>
+  </h3>
+
+  <!-- ── Tabs ── -->
+  <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #e2e8f0;">
+    <button id="tab-gen" onclick="showTab('gen')"
+      style="padding:8px 18px;border:none;background:none;cursor:pointer;font-size:0.88rem;font-weight:600;color:#2b6cb0;border-bottom:2px solid #2b6cb0;margin-bottom:-2px;">
+      &#127922; Generate Data
     </button>
-    <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
-      <div>
-        <label style="display:block;font-size:0.78rem;font-weight:600;color:#4a5568;margin-bottom:4px;">Records</label>
-        <input type="number" id="genCount" value="100" min="10" max="50000" step="10"
-               style="width:90px;padding:8px 10px;border:1px solid #cbd5e0;border-radius:5px;font-size:0.85rem;">
+    <button id="tab-etl" onclick="showTab('etl')"
+      style="padding:8px 18px;border:none;background:none;cursor:pointer;font-size:0.88rem;font-weight:600;color:#718096;border-bottom:2px solid transparent;margin-bottom:-2px;">
+      &#9881; Run ETL
+    </button>
+    <button id="tab-api" onclick="showTab('api')"
+      style="padding:8px 18px;border:none;background:none;cursor:pointer;font-size:0.88rem;font-weight:600;color:#718096;border-bottom:2px solid transparent;margin-bottom:-2px;">
+      &#128225; API
+    </button>
+  </div>
+
+  <!-- ── TAB: Generate Data ── -->
+  <div id="panel-gen">
+    <p style="font-size:0.82rem;color:#718096;margin-bottom:16px;">
+      Generate synthetic Pakistan public health survey data. Supports exact count or random
+      between min/max. Date range controls enrollment and visit dates. Seed ensures reproducibility.
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:16px;">
+
+      <div class="form-group" style="margin:0;">
+        <label>Exact Records</label>
+        <input type="number" id="genCount" value="500" min="10" max="50000" step="10"
+               placeholder="e.g. 500">
+        <small style="color:#a0aec0;font-size:0.7rem;">Overrides min/max</small>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;padding-bottom:8px;">
-        <input type="checkbox" id="injectDQ" style="width:16px;height:16px;cursor:pointer;">
-        <label for="injectDQ" style="font-size:0.82rem;color:#4a5568;cursor:pointer;">Inject DQ issues</label>
+
+      <div class="form-group" style="margin:0;">
+        <label>Min Records</label>
+        <input type="number" id="genMin" value="" min="10" max="50000" step="10"
+               placeholder="e.g. 200">
+        <small style="color:#a0aec0;font-size:0.7rem;">Random between min–max</small>
       </div>
-      <button class="btn-gen" onclick="runGenerator()" style="padding:10px 20px;font-size:0.9rem;">
+
+      <div class="form-group" style="margin:0;">
+        <label>Max Records</label>
+        <input type="number" id="genMax" value="" min="10" max="50000" step="10"
+               placeholder="e.g. 800">
+      </div>
+
+      <div class="form-group" style="margin:0;">
+        <label>Start Date</label>
+        <input type="date" id="genStart" value="2024-01-01">
+        <small style="color:#a0aec0;font-size:0.7rem;">Enrollment from</small>
+      </div>
+
+      <div class="form-group" style="margin:0;">
+        <label>End Date</label>
+        <input type="date" id="genEnd" value="2025-03-31">
+        <small style="color:#a0aec0;font-size:0.7rem;">Enrollment to</small>
+      </div>
+
+      <div class="form-group" style="margin:0;">
+        <label>Rounds</label>
+        <input type="number" id="genRounds" value="4" min="1" max="12">
+        <small style="color:#a0aec0;font-size:0.7rem;">Follow-up rounds</small>
+      </div>
+
+      <div class="form-group" style="margin:0;">
+        <label>Seed (optional)</label>
+        <input type="number" id="genSeed" value="" placeholder="e.g. 42">
+        <small style="color:#a0aec0;font-size:0.7rem;">For reproducibility</small>
+      </div>
+
+      <div class="form-group" style="margin:0;display:flex;flex-direction:column;justify-content:flex-end;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
+          <input type="checkbox" id="injectDQ" checked style="width:16px;height:16px;">
+          <span>Inject DQ issues</span>
+        </label>
+        <small style="color:#a0aec0;font-size:0.7rem;">Bilingual, GPS errors, duplicates</small>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <button class="btn-gen" onclick="runGenerator()" style="padding:10px 24px;font-size:0.9rem;">
         &#127922; Generate Data
       </button>
+      <button onclick="runGenerator(true)" style="padding:10px 18px;background:#e2e8f0;color:#4a5568;border:none;border-radius:5px;cursor:pointer;font-size:0.85rem;font-weight:600;">
+        &#128196; Generate + Run ETL
+      </button>
+      <span style="font-size:0.78rem;color:#a0aec0;">Data appended to raw/current/ (append-only)</span>
     </div>
-    <a href="/publichealth/api/v1/" target="_blank"
-       style="display:inline-block;padding:10px 20px;background:#e2e8f0;color:#2d3748;border-radius:5px;font-size:0.88rem;text-decoration:none;font-weight:600;">
-      &#128225; API Discovery
-    </a>
-    <a href="/publichealth/api/v1/kpis" target="_blank"
-       style="display:inline-block;padding:10px 20px;background:#ebf8ff;color:#2b6cb0;border-radius:5px;font-size:0.88rem;text-decoration:none;font-weight:600;">
-      &#128202; KPIs JSON
-    </a>
+  </div>
+
+  <!-- ── TAB: Run ETL ── -->
+  <div id="panel-etl" style="display:none;">
+    <p style="font-size:0.82rem;color:#718096;margin-bottom:16px;">
+      Run the Medallion ETL pipeline step-by-step or all at once.
+      Each step shows live progress in the terminal below.
+    </p>
+
+    <!-- Step cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
+      <div style="background:#fef3c7;border-radius:8px;padding:14px;border-top:3px solid #cd7f32;">
+        <div style="font-weight:700;font-size:0.9rem;color:#7b4f12;margin-bottom:6px;">&#129353; Bronze</div>
+        <div style="font-size:0.78rem;color:#718096;margin-bottom:10px;">
+          Ingest raw sources<br>Exact copy + lineage metadata<br>Full/Incremental/CDC
+        </div>
+        <button class="btn-etl" onclick="runStep('bronze')"
+          style="width:100%;padding:7px;font-size:0.82rem;background:#cd7f32;">
+          Run Bronze Only
+        </button>
+      </div>
+
+      <div style="background:#f7fafc;border-radius:8px;padding:14px;border-top:3px solid #a0aec0;">
+        <div style="font-weight:700;font-size:0.9rem;color:#4a5568;margin-bottom:6px;">&#129352; Silver</div>
+        <div style="font-size:0.78rem;color:#718096;margin-bottom:10px;">
+          Schema evolution + DQ cleaning<br>Bilingual normalisation<br>CDC tagging
+        </div>
+        <button class="btn-etl" onclick="runStep('silver')"
+          style="width:100%;padding:7px;font-size:0.82rem;background:#718096;">
+          Run Silver Only
+        </button>
+      </div>
+
+      <div style="background:#fefcbf;border-radius:8px;padding:14px;border-top:3px solid #d69e2e;">
+        <div style="font-weight:700;font-size:0.9rem;color:#744210;margin-bottom:6px;">&#129351; Gold</div>
+        <div style="font-size:0.78rem;color:#718096;margin-bottom:10px;">
+          SCD2 dims + fact tables<br>Windowed KPI aggregations<br>BI-ready output
+        </div>
+        <button class="btn-etl" onclick="runStep('gold')"
+          style="width:100%;padding:7px;font-size:0.82rem;background:#d69e2e;">
+          Run Gold Only
+        </button>
+      </div>
+
+      <div style="background:linear-gradient(135deg,#ebf8ff,#f0fff4);border-radius:8px;padding:14px;border-top:3px solid #276749;">
+        <div style="font-weight:700;font-size:0.9rem;color:#276749;margin-bottom:6px;">&#9654; Full Pipeline</div>
+        <div style="font-size:0.78rem;color:#718096;margin-bottom:10px;">
+          Bronze &#8594; Silver &#8594; Gold<br>All steps in sequence<br>Delta log updated
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <label style="font-size:0.75rem;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" id="forceFullLoad" style="width:13px;height:13px;">
+            Force full reload
+          </label>
+        </div>
+        <button class="btn-etl" onclick="runStep('all')"
+          style="width:100%;padding:7px;font-size:0.82rem;">
+          &#9881; Run Full Pipeline
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: API ── -->
+  <div id="panel-api" style="display:none;">
+    <p style="font-size:0.82rem;color:#718096;margin-bottom:14px;">
+      REST API endpoints — connect Power BI, Tableau, or any HTTP client.
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;">
+      {% for label, path in [
+        ("API Discovery",       "/publichealth/api/v1/"),
+        ("KPIs (Power BI)",     "/publichealth/api/v1/kpis"),
+        ("Child Nutrition",     "/publichealth/api/v1/child-nutrition"),
+        ("Maternal Health",     "/publichealth/api/v1/maternal-health"),
+        ("District Summary",    "/publichealth/api/v1/district-summary"),
+        ("Facilities",          "/publichealth/api/v1/facilities"),
+        ("Households",          "/publichealth/api/v1/households"),
+        ("Tableau WDC",         "/publichealth/api/v1/tableau/child-nutrition"),
+      ] %}
+      <a href="{{ path }}" target="_blank"
+         style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f7fafc;border-radius:6px;text-decoration:none;border:1px solid #e2e8f0;transition:background 0.15s;"
+         onmouseover="this.style.background='#ebf8ff'" onmouseout="this.style.background='#f7fafc'">
+        <span style="font-size:1.1rem;">&#128225;</span>
+        <div>
+          <div style="font-size:0.82rem;font-weight:600;color:#2b6cb0;">{{ label }}</div>
+          <div style="font-size:0.7rem;color:#a0aec0;font-family:monospace;">{{ path }}</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- TERMINAL — live log output                                            -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div id="terminalBox" style="display:none;margin-top:16px;">
+  <div style="background:#1a202c;border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+    <!-- Terminal title bar -->
+    <div style="background:#2d3748;padding:10px 16px;display:flex;align-items:center;gap:8px;">
+      <span style="width:12px;height:12px;border-radius:50%;background:#fc8181;display:inline-block;"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#f6e05e;display:inline-block;"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#68d391;display:inline-block;"></span>
+      <span id="termTitle" style="margin-left:8px;font-size:0.78rem;color:#a0aec0;font-family:monospace;">
+        PSAKSH Pipeline Terminal
+      </span>
+      <span id="termSpinner" style="margin-left:auto;font-size:0.78rem;color:#68d391;display:none;">
+        &#9679; Running...
+      </span>
+      <button onclick="clearTerminal()"
+        style="margin-left:auto;background:none;border:none;color:#718096;cursor:pointer;font-size:0.75rem;padding:2px 8px;">
+        Clear
+      </button>
+    </div>
+    <!-- Log output -->
+    <div id="termOutput"
+      style="font-family:'Courier New',monospace;font-size:0.78rem;line-height:1.6;
+             padding:16px;min-height:200px;max-height:500px;overflow-y:auto;
+             background:#0d1117;color:#c9d1d9;white-space:pre-wrap;word-break:break-all;">
+      <span style="color:#718096;">$ Ready. Click a button above to start.</span>
+    </div>
+    <!-- Status bar -->
+    <div id="termStatus"
+      style="background:#161b22;padding:6px 16px;font-size:0.72rem;color:#718096;
+             font-family:monospace;display:flex;justify-content:space-between;">
+      <span id="termStatusLeft">Idle</span>
+      <span id="termStatusRight"></span>
+    </div>
   </div>
 </div>
 
 <script>
-function runGenerator() {
-  var count = parseInt(document.getElementById("genCount").value) || 100;
-  var injectDQ = document.getElementById("injectDQ").checked;
-  if (count < 10 || count > 50000) {
-    toast("Records must be between 10 and 50,000", "warn");
+var BASE = '/publichealth';
+var _currentES = null;   // active EventSource
+var _jobStart  = null;
+
+// ── Tab switching ─────────────────────────────────────────────────────────
+function showTab(name) {
+  ['gen','etl','api'].forEach(function(t) {
+    document.getElementById('panel-' + t).style.display = t === name ? '' : 'none';
+    var btn = document.getElementById('tab-' + t);
+    btn.style.color = t === name ? '#2b6cb0' : '#718096';
+    btn.style.borderBottomColor = t === name ? '#2b6cb0' : 'transparent';
+  });
+}
+
+// ── Terminal helpers ──────────────────────────────────────────────────────
+function showTerminal(title) {
+  document.getElementById('terminalBox').style.display = '';
+  document.getElementById('termTitle').textContent = title;
+  document.getElementById('termOutput').innerHTML = '';
+  document.getElementById('termSpinner').style.display = 'inline';
+  document.getElementById('termStatusLeft').textContent = 'Running...';
+  document.getElementById('termStatusRight').textContent = '';
+  _jobStart = Date.now();
+  document.getElementById('terminalBox').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function appendLog(line) {
+  var out = document.getElementById('termOutput');
+  var color = '#c9d1d9';
+  if (line.startsWith('[BRONZE]') || line.startsWith('[1/'))  color = '#cd7f32';
+  else if (line.startsWith('[SILVER]') || line.startsWith('[2/')) color = '#a0aec0';
+  else if (line.startsWith('[GOLD]')   || line.startsWith('[3/')) color = '#f6e05e';
+  else if (line.startsWith('[GEN]')    || line.startsWith('[4/') || line.startsWith('[5/')) color = '#68d391';
+  else if (line.startsWith('[SAVE]'))  color = '#90cdf4';
+  else if (line.startsWith('DONE'))    color = '#68d391';
+  else if (line.startsWith('ERROR'))   color = '#fc8181';
+  else if (line.startsWith('     ') || line.startsWith('         ')) color = '#8b949e';
+  var span = document.createElement('span');
+  span.style.color = color;
+  span.textContent = line + '\n';
+  out.appendChild(span);
+  out.scrollTop = out.scrollHeight;
+}
+
+function clearTerminal() {
+  document.getElementById('termOutput').innerHTML =
+    '<span style="color:#718096;">$ Terminal cleared.</span>';
+}
+
+function termDone(success) {
+  document.getElementById('termSpinner').style.display = 'none';
+  var elapsed = _jobStart ? ((Date.now() - _jobStart) / 1000).toFixed(1) + 's' : '';
+  document.getElementById('termStatusLeft').textContent = success ? 'Completed' : 'Failed';
+  document.getElementById('termStatusRight').textContent = elapsed;
+  if (success) {
+    progress(100);
+    setTimeout(function() { location.reload(); }, 3000);
+  }
+}
+
+// ── SSE streaming ─────────────────────────────────────────────────────────
+function streamJob(jobId, title) {
+  showTerminal(title + '  [job=' + jobId + ']');
+  if (_currentES) { _currentES.close(); }
+  var es = new EventSource(BASE + '/pipeline-stream/' + jobId);
+  _currentES = es;
+  es.onmessage = function(e) {
+    var line = e.data;
+    if (line === '__DONE__') {
+      es.close();
+      termDone(true);
+      toast('Complete! Refreshing...', 'success');
+    } else if (line === '__TIMEOUT__') {
+      es.close();
+      termDone(false);
+      toast('Stream timed out — check job log', 'warn');
+    } else {
+      appendLog(line);
+    }
+  };
+  es.onerror = function() {
+    // SSE not supported or connection dropped — fall back to polling
+    es.close();
+    pollJob(jobId);
+  };
+}
+
+// ── Polling fallback (for servers that don't support SSE) ─────────────────
+function pollJob(jobId) {
+  var seen = 0;
+  var interval = setInterval(function() {
+    fetch(BASE + '/api/job-log/' + jobId)
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var lines = d.lines || [];
+        for (var i = seen; i < lines.length; i++) {
+          appendLog(lines[i]);
+        }
+        seen = lines.length;
+        if (d.done) {
+          clearInterval(interval);
+          termDone(true);
+          toast('Complete! Refreshing...', 'success');
+        }
+      })
+      .catch(function() { clearInterval(interval); });
+  }, 800);
+}
+
+// ── Generate Data ─────────────────────────────────────────────────────────
+function runGenerator(andEtl) {
+  var countVal = parseInt(document.getElementById('genCount').value) || 0;
+  var minVal   = parseInt(document.getElementById('genMin').value)   || 0;
+  var maxVal   = parseInt(document.getElementById('genMax').value)   || 0;
+  var startVal = document.getElementById('genStart').value;
+  var endVal   = document.getElementById('genEnd').value;
+  var rounds   = parseInt(document.getElementById('genRounds').value) || 4;
+  var seedVal  = parseInt(document.getElementById('genSeed').value)  || null;
+  var dq       = document.getElementById('injectDQ').checked;
+
+  if (!countVal && !minVal && !maxVal) {
+    toast('Enter a record count or min/max range', 'warn');
     return;
   }
-  progress(20);
-  toast("Generating " + count.toLocaleString() + " records in background...", "info");
-  fetch(BASE + "/api/generate", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({count: count, inject_dq: injectDQ})
+  if (startVal && endVal && startVal >= endVal) {
+    toast('End date must be after start date', 'warn');
+    return;
+  }
+
+  progress(10);
+  showTab('gen');
+
+  var payload = {
+    inject_dq:  dq,
+    rounds:     rounds,
+    start_date: startVal || null,
+    end_date:   endVal   || null,
+  };
+  if (seedVal)   payload.seed        = seedVal;
+  if (countVal)  payload.count       = countVal;
+  if (minVal)    payload.min_records = minVal;
+  if (maxVal)    payload.max_records = maxVal;
+
+  fetch(BASE + '/api/generate', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload),
   })
-  .then(function(r) {
-    var ct = r.headers.get("content-type") || "";
-    if (ct.indexOf("json") === -1) {
-      return r.text().then(function(t) {
-        throw new Error("Server error: " + t.substring(0, 120));
-      });
-    }
-    return r.json();
-  })
+  .then(function(r) { return r.json(); })
   .then(function(d) {
-    progress(100);
-    var status = d.status || "ok";
-    if (status === "started") {
-      toast(d.message || "Generation started. Run ETL in ~30s.", "info");
-    } else if (status === "ok") {
-      toast(d.message || "Generated " + count.toLocaleString() + " records.", "success");
-      setTimeout(function() { location.reload(); }, 2000);
+    progress(30);
+    if (d.job_id) {
+      streamJob(d.job_id, 'Data Generation');
+      if (andEtl) {
+        // After generation completes, auto-run ETL
+        waitAndRunEtl(d.job_id);
+      }
     } else {
-      toast("Error: " + (d.message || "Unknown error"), "error");
+      toast(d.message || 'Started', 'info');
     }
   })
   .catch(function(e) {
     progress(100);
-    toast("Generate error: " + e.message, "error");
+    toast('Error: ' + e.message, 'error');
+  });
+}
+
+function waitAndRunEtl(genJobId) {
+  // Poll until generation done, then run ETL
+  var interval = setInterval(function() {
+    fetch(BASE + '/api/job-log/' + genJobId)
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.done) {
+          clearInterval(interval);
+          setTimeout(function() { runStep('all'); }, 1000);
+        }
+      });
+  }, 2000);
+}
+
+// ── ETL step ──────────────────────────────────────────────────────────────
+function runStep(step) {
+  var force = document.getElementById('forceFullLoad') ?
+              document.getElementById('forceFullLoad').checked : false;
+  var labels = {
+    bronze: 'Bronze Ingestion',
+    silver: 'Silver Transform',
+    gold:   'Gold Build',
+    all:    'Full Pipeline (Bronze -> Silver -> Gold)',
+  };
+  progress(10);
+  showTab('etl');
+
+  fetch(BASE + '/run-pipeline', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({step: step, force_full: force}),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    progress(30);
+    if (d.job_id) {
+      streamJob(d.job_id, labels[step] || step);
+    } else {
+      toast(d.message || 'Started', 'info');
+    }
+  })
+  .catch(function(e) {
+    progress(100);
+    toast('Error: ' + e.message, 'error');
   });
 }
 </script>
 {% endblock %}
+
