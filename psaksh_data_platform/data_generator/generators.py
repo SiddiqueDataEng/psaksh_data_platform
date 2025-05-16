@@ -243,7 +243,7 @@ def _dq_enum_id(eid: str) -> str:
 # ---------------------------------------------------------------------------
 
 def generate_households(
-    n: Optional[int] = 5000,
+    n: Optional[int] = None,
     *,
     start_date:  Optional[str] = None,
     end_date:    Optional[str] = None,
