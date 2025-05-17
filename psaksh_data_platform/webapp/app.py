@@ -1115,22 +1115,51 @@ def survey():
                     continue
         except Exception:
             pass
-        # CSV fallback
+        # Parquet + CSV fallback
         if not recent_submissions:
-            for csv_path in [
+            # Search order: parquet first (more complete), then CSV
+            fallback_paths = [
+                PKG_DIR / "data" / "raw" / "current" / "households.parquet",
                 PKG_DIR / "data" / "raw" / "current" / "households.csv",
+                PKG_DIR / "data" / "raw" / "households.parquet",
                 PKG_DIR / "data" / "raw" / "households.csv",
-            ]:
-                if csv_path.exists():
-                    df = pd.read_csv(str(csv_path), low_memory=False)
-                    keep = [c for c in ["household_id", "district", "union_council",
-                                        "respondent_name", "submission_time"] if c in df.columns]
-                    if keep:
-                        recent_submissions = (
-                            df[keep].tail(10).iloc[::-1].fillna("--").to_dict("records")
-                        )
-                        db_stats = {"source": "CSV file", "total_records": len(df)}
+                PKG_DIR / "data" / "silver" / "households.parquet",
+                PKG_DIR / "data" / "gold"   / "dim_district.parquet",  # fallback for districts
+            ]
+            for fpath in fallback_paths:
+                if not fpath.exists():
+                    continue
+                try:
+                    if fpath.suffix == ".parquet":
+                        df = pd.read_parquet(str(fpath))
+                    else:
+                        df = pd.read_csv(str(fpath), low_memory=False)
+
+                    keep = [c for c in [
+                        "household_id", "district", "union_council",
+                        "respondent_name", "submission_time", "enrollment_date",
+                    ] if c in df.columns]
+                    if not keep or "district" not in df.columns:
+                        continue
+
+                    df_sub = df[keep].copy()
+                    # Normalise time column
+                    time_col = "submission_time" if "submission_time" in df_sub.columns else \
+                               "enrollment_date"  if "enrollment_date"  in df_sub.columns else None
+                    if time_col:
+                        df_sub[time_col] = pd.to_datetime(df_sub[time_col], errors="coerce")
+                        df_sub = df_sub.sort_values(time_col, ascending=False)
+                        df_sub["submission_time"] = df_sub[time_col].dt.strftime(
+                            "%Y-%m-%d %H:%M"
+                        ).fillna("--")
+                    else:
+                        df_sub["submission_time"] = "--"
+
+                    recent_submissions = df_sub.head(10).fillna("--").to_dict("records")
+                    db_stats = {"source": fpath.name, "total_records": len(df)}
                     break
+                except Exception:
+                    continue
     except Exception:
         pass
     return render_template("survey.html", recent_submissions=recent_submissions, db_stats=db_stats)

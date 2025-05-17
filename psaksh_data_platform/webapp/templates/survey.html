@@ -193,7 +193,8 @@
             <tr>
               <th>Name</th>
               <th>District</th>
-              <th>Time</th>
+              <th>UC</th>
+              <th>Date &amp; Time</th>
             </tr>
           </thead>
           <tbody>
@@ -201,7 +202,15 @@
             <tr>
               <td style="font-size:0.82rem;">{{ sub.respondent_name | default('—') }}</td>
               <td style="font-size:0.82rem;">{{ sub.district | default('—') }}</td>
-              <td style="font-size:0.78rem;color:#718096;">{{ sub.submitted_at | default('—') }}</td>
+              <td style="font-size:0.78rem;color:#718096;">{{ sub.union_council | default('—') }}</td>
+              <td style="font-size:0.78rem;color:#718096;white-space:nowrap;">
+                {% set t = sub.submission_time | default(sub.submitted_at) | default('') %}
+                {% if t and t != '--' and t != 'nan' %}
+                  {{ t[:16] | replace('T', ' ') }}
+                {% else %}
+                  <span style="color:#e2e8f0;">—</span>
+                {% endif %}
+              </td>
             </tr>
             {% endfor %}
           </tbody>
