@@ -4,8 +4,7 @@ Reads from environment variables and .env file.
 
 Environments:
   local       — SQLite (no Docker needed)
-  staging     — MySQL on remote server
-  production  — MySQL on remote server (same host, same DB for this project)
+  production  — MySQL on remote server (144.76.202.252)
 """
 
 from functools import lru_cache
@@ -22,14 +21,14 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Database
-    db_host:     str = "localhost"
+    # Database — remote MySQL (production default)
+    db_host:     str = "144.76.202.252"
     db_port:     int = 3306
-    db_name:     str = "psaksh_warehouse"
-    db_user:     str = "psaksh_user"
-    db_password: str = "changeme"
+    db_name:     str = "sattioe1_publichealth"
+    db_user:     str = "sattioe1_publichealth"
+    db_password: str = "sattioe1_publichealth"
 
-    # AWS (optional — only needed for cloud S3 features)
+    # AWS (optional)
     aws_region:            str = "us-east-1"
     aws_access_key_id:     Optional[str] = None
     aws_secret_access_key: Optional[str] = None
@@ -45,12 +44,12 @@ class Settings(BaseSettings):
     surveycto_form_ids: str = "household_enrollment,followup_visit,facility_assessment"
 
     # App
-    env:       str = "local"
+    env:       str = "production"
     log_level: str = "INFO"
 
     @property
     def db_url(self) -> str:
-        """MySQL connection URL for staging/production."""
+        """MySQL connection URL."""
         return (
             f"mysql+pymysql://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
@@ -59,7 +58,7 @@ class Settings(BaseSettings):
 
     @property
     def db_url_local_sqlite(self) -> str:
-        """SQLite fallback for local dev without MySQL."""
+        """SQLite fallback for local dev."""
         return "sqlite:///psaksh_local.db"
 
     @property

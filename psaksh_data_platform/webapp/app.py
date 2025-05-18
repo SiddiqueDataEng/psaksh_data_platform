@@ -890,7 +890,7 @@ def submit_survey():
                 try:
                     import importlib
                     load_mod = importlib.import_module(mod_path)
-                    engine = load_mod.get_engine(use_sqlite=True)
+                    engine = load_mod.get_engine(use_sqlite=(os.environ.get("ENV","production") == "local"))
                     # Create table if it doesn't exist (auto-schema from DataFrame)
                     new_row.to_sql(
                         "raw_household_submissions",
@@ -947,12 +947,6 @@ def submit_survey():
                 "next_step": "Run ETL pipeline to process this record into Silver/Gold layers",
             },
         })
-
-    except Exception:
-        import traceback
-        return jsonify({"status": "error",
-                        "message": traceback.format_exc()[-600:]}), 500
-
 
     except Exception:
         import traceback
@@ -1094,7 +1088,7 @@ def survey():
                 try:
                     import importlib
                     load_mod = importlib.import_module(mod_path)
-                    engine = load_mod.get_engine(use_sqlite=True)
+                    engine = load_mod.get_engine(use_sqlite=(os.environ.get("ENV","production") == "local"))
                     from sqlalchemy import text as _text
                     with engine.connect() as conn:
                         result = conn.execute(_text(

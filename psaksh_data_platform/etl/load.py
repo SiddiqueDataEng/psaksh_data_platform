@@ -27,8 +27,16 @@ from psaksh_data_platform.config.settings import get_settings
 # ---------------------------------------------------------------------------
 
 def get_engine(use_sqlite: bool = False) -> Engine:
+    """
+    Return a SQLAlchemy engine.
+    - use_sqlite=True  → always SQLite (local dev)
+    - use_sqlite=False → MySQL if ENV=production, else SQLite
+    """
     settings = get_settings()
-    url = settings.db_url_local_sqlite if use_sqlite else settings.db_url
+    if use_sqlite or settings.is_local:
+        url = settings.db_url_local_sqlite
+    else:
+        url = settings.db_url
     return create_engine(url, echo=False, pool_pre_ping=True)
 
 
