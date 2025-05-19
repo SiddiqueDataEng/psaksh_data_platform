@@ -1194,18 +1194,40 @@ def _run_cmd(cmd: list) -> tuple[bool, str]:
         return False, str(e)
 
 
-# ── Pipeline job log (in-memory, keyed by job_id) ────────────────────────────
+# ── Pipeline job log — FILE-BASED so SSE works across Passenger workers ─────
 import collections as _collections
-_JOB_LOGS: dict = _collections.OrderedDict()   # job_id -> list[str]
-_MAX_JOBS = 20
+import tempfile as _tempfile
+
+_JOB_LOG_DIR = Path(__file__).resolve().parent.parent / "data" / "job_logs"
+_JOB_LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+def _job_log_path(job_id: str) -> Path:
+    return _JOB_LOG_DIR / f"{job_id}.log"
 
 def _job_log(job_id: str, msg: str) -> None:
-    """Append a log line to a job's in-memory log."""
-    if job_id not in _JOB_LOGS:
-        if len(_JOB_LOGS) >= _MAX_JOBS:
-            _JOB_LOGS.popitem(last=False)
-        _JOB_LOGS[job_id] = []
-    _JOB_LOGS[job_id].append(msg)
+    """Append a log line to the job's log file (works across processes)."""
+    try:
+        with open(_job_log_path(job_id), "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+    except Exception:
+        pass
+
+def _job_log_read(job_id: str) -> list:
+    """Read all log lines for a job."""
+    p = _job_log_path(job_id)
+    if not p.exists():
+        return []
+    try:
+        return p.read_text(encoding="utf-8", errors="replace").splitlines()
+    except Exception:
+        return []
+
+def _job_log_done(job_id: str) -> bool:
+    lines = _job_log_read(job_id)
+    return bool(lines and any(
+        l.startswith("DONE") or "Pipeline complete" in l or "complete" in l.lower()
+        for l in lines[-3:]
+    ))
 
 
 # ── SSE: stream job log to browser ───────────────────────────────────────────
@@ -1213,41 +1235,43 @@ def _job_log(job_id: str, msg: str) -> None:
 @app.route("/pipeline-stream/<job_id>")
 def pipeline_stream(job_id: str):
     """
-    Server-Sent Events endpoint — streams live log lines for a job.
-    Browser connects with EventSource('/publichealth/pipeline-stream/<job_id>').
+    Server-Sent Events — streams live log lines from the job log file.
+    Works across Passenger worker processes (file-based, not in-memory).
     """
     import time as _time
 
     def _generate():
         sent = 0
-        # Stream for up to 5 minutes
-        for _ in range(600):
-            logs = _JOB_LOGS.get(job_id, [])
+        for _ in range(600):   # max 5 minutes
+            logs = _job_log_read(job_id)
             while sent < len(logs):
-                line = logs[sent].replace("\n", " ")
+                line = logs[sent].replace("\n", " ").replace("\r", "")
                 yield f"data: {line}\n\n"
                 sent += 1
-            if logs and logs[-1].startswith("DONE") or (logs and "Pipeline complete" in logs[-1]):
+            if _job_log_done(job_id) and sent > 0:
                 yield "data: __DONE__\n\n"
                 return
             _time.sleep(0.5)
         yield "data: __TIMEOUT__\n\n"
 
     from flask import Response
-    return Response(_generate(), mimetype="text/event-stream",
-                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    return Response(
+        _generate(),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control":    "no-cache, no-store",
+            "X-Accel-Buffering":"no",
+            "Connection":       "keep-alive",
+        },
+    )
 
-
-# ── GET: job log as JSON ──────────────────────────────────────────────────────
 @app.route("/publichealth/api/job-log/<job_id>")
 @app.route("/api/job-log/<job_id>")
 def api_job_log(job_id: str):
-    logs = _JOB_LOGS.get(job_id, [])
-    done = bool(logs and ("DONE" in logs[-1] or "Pipeline complete" in logs[-1] or "complete" in logs[-1].lower()))
+    logs = _job_log_read(job_id)
+    done = _job_log_done(job_id)
     return jsonify({"job_id": job_id, "lines": logs, "done": done})
 
-
-# ── Data Generator (parametrized) ────────────────────────────────────────────
 @app.route("/publichealth/run-generator", methods=["POST"])
 @app.route("/run-generator", methods=["POST"])
 def run_generator():
