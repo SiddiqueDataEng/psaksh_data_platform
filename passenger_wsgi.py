@@ -10,7 +10,7 @@ Server layout:
   Data:       /home/sattioe1/softcomputech.com/publichealth/psaksh_data_platform/data/
   URL:        https://softcomputech.com/publichealth/
 
-# v4 — correct paths, module reload, Bronze stats, visit_round fix
+# v5 — file-based SSE job logs via /tmp/psaksh_job_logs/
 """
 
 import sys

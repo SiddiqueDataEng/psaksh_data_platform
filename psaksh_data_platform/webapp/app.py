@@ -1198,8 +1198,12 @@ def _run_cmd(cmd: list) -> tuple[bool, str]:
 import collections as _collections
 import tempfile as _tempfile
 
-_JOB_LOG_DIR = Path(__file__).resolve().parent.parent / "data" / "job_logs"
-_JOB_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_JOB_LOG_DIR = Path("/tmp/psaksh_job_logs")
+try:
+    _JOB_LOG_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    _JOB_LOG_DIR = Path(__file__).resolve().parent.parent / "data" / "job_logs"
+    _JOB_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 def _job_log_path(job_id: str) -> Path:
     return _JOB_LOG_DIR / f"{job_id}.log"
