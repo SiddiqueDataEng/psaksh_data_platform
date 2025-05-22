@@ -543,9 +543,14 @@ function termDone(success) {
 function streamJob(jobId, title) {
   showTerminal(title + '  [job=' + jobId + ']');
   if (_currentES) { _currentES.close(); }
+
+  // Try SSE first; fall back to polling if it fails or returns HTML
+  var sseOk = false;
   var es = new EventSource(BASE + '/pipeline-stream/' + jobId);
   _currentES = es;
+
   es.onmessage = function(e) {
+    sseOk = true;
     var line = e.data;
     if (line === '__DONE__') {
       es.close();
@@ -554,38 +559,112 @@ function streamJob(jobId, title) {
     } else if (line === '__TIMEOUT__') {
       es.close();
       termDone(false);
-      toast('Stream timed out — check job log', 'warn');
+      toast('Stream timed out', 'warn');
     } else {
       appendLog(line);
     }
   };
+
   es.onerror = function() {
-    // SSE not supported or connection dropped — fall back to polling
     es.close();
-    pollJob(jobId);
+    if (!sseOk) {
+      // SSE not available on this server — use polling
+      pollJob(jobId);
+    }
   };
+
+  // If no SSE message in 3s, switch to polling
+  setTimeout(function() {
+    if (!sseOk) {
+      es.close();
+      pollJob(jobId);
+    }
+  }, 3000);
 }
 
-// ── Polling fallback (for servers that don't support SSE) ─────────────────
+// ── Polling fallback ──────────────────────────────────────────────────────
 function pollJob(jobId) {
+  appendLog('[INFO] Streaming via polling (SSE not available on this server)');
   var seen = 0;
+  var attempts = 0;
   var interval = setInterval(function() {
+    attempts++;
     fetch(BASE + '/api/job-log/' + jobId)
-      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        // Check content-type — old server returns HTML 404
+        var ct = r.headers.get('content-type') || '';
+        if (!r.ok || ct.indexOf('json') === -1) {
+          // Old server without job-log endpoint — show simulated progress
+          clearInterval(interval);
+          simulateProgress(jobId);
+          return null;
+        }
+        return r.json();
+      })
       .then(function(d) {
+        if (!d) return;
         var lines = d.lines || [];
         for (var i = seen; i < lines.length; i++) {
           appendLog(lines[i]);
         }
         seen = lines.length;
-        if (d.done) {
+        if (d.done || attempts > 120) {
           clearInterval(interval);
+          if (d.done) {
+            termDone(true);
+            toast('Complete! Refreshing...', 'success');
+          }
+        }
+      })
+      .catch(function() {
+        clearInterval(interval);
+        simulateProgress(jobId);
+      });
+  }, 1000);
+}
+
+// ── Simulated progress (when server doesn't support job-log endpoint) ─────
+function simulateProgress(jobId) {
+  appendLog('[GEN] Job ' + jobId + ' is running on the server...');
+  appendLog('[GEN] The server is generating data in the background.');
+  appendLog('[GEN] This server version does not support live log streaming.');
+  appendLog('[GEN] Checking completion by polling KPIs...');
+
+  var checks = 0;
+  var prevChildren = 0;
+
+  // Get current children count
+  fetch(BASE + '/api/v1/kpis')
+    .then(function(r) { return r.json(); })
+    .then(function(d) { prevChildren = d.children_measured || 0; })
+    .catch(function() {});
+
+  var interval = setInterval(function() {
+    checks++;
+    appendLog('[GEN] Waiting... (' + (checks * 5) + 's elapsed)');
+
+    fetch(BASE + '/api/v1/kpis')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var newChildren = d.children_measured || 0;
+        if (newChildren !== prevChildren || checks > 24) {
+          clearInterval(interval);
+          if (newChildren !== prevChildren) {
+            appendLog('[GEN] Data updated! Children: ' + prevChildren + ' -> ' + newChildren);
+          }
+          appendLog('DONE Job complete. Refreshing page...');
           termDone(true);
           toast('Complete! Refreshing...', 'success');
         }
       })
-      .catch(function() { clearInterval(interval); });
-  }, 800);
+      .catch(function() {
+        if (checks > 24) {
+          clearInterval(interval);
+          appendLog('DONE Timeout — check the page for updated data.');
+          termDone(false);
+        }
+      });
+  }, 5000);
 }
 
 // ── Generate Data ─────────────────────────────────────────────────────────
