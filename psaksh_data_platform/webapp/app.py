@@ -1309,7 +1309,11 @@ def run_generator():
     inject_dq  = bool(body.get("inject_dq_issues") or body.get("inject_dq", True))
 
     job_id = _uuid.uuid4().hex[:8].upper()
-    _JOB_LOGS[job_id] = []
+    # initialise file-based job log
+    try:
+        _job_log_path(job_id).unlink(missing_ok=True)
+    except Exception:
+        pass
 
     def _log(msg):
         _job_log(job_id, msg)
@@ -1447,7 +1451,11 @@ def run_pipeline():
     step      = body.get("step", "all")          # "all", "bronze", "silver", "gold"
     force     = bool(body.get("force_full", False))
     job_id    = _uuid.uuid4().hex[:8].upper()
-    _JOB_LOGS[job_id] = []
+    # initialise file-based job log
+    try:
+        _job_log_path(job_id).unlink(missing_ok=True)
+    except Exception:
+        pass
 
     def _log(msg):
         _job_log(job_id, msg)
