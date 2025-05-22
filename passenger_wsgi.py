@@ -10,7 +10,7 @@ Server layout:
   Data:       /home/sattioe1/softcomputech.com/publichealth/psaksh_data_platform/data/
   URL:        https://softcomputech.com/publichealth/
 
-# v5 — file-based SSE job logs via /tmp/psaksh_job_logs/
+# v6 — reload webapp.app on startup to pick up new app.py
 """
 
 import sys
@@ -97,10 +97,11 @@ for _mod in list(sys.modules.keys()):
         "psaksh_data_platform.etl",
         "psaksh_data_platform.analytics",
         "psaksh_data_platform.data_generator",
-        "etl.", "analytics.", "data_generator.",
+        "psaksh_data_platform.webapp",   # <-- force app.py reload
+        "etl.", "analytics.", "data_generator.", "webapp.",
     ]):
         del sys.modules[_mod]
-_log("ETL modules cleared from cache")
+_log("ETL + webapp modules cleared from cache")
 
 # ── Install flask if missing ──────────────────────────────────────────────────
 try:
