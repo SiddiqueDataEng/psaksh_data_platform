@@ -1198,11 +1198,13 @@ def _run_cmd(cmd: list) -> tuple[bool, str]:
 import collections as _collections
 import tempfile as _tempfile
 
-_JOB_LOG_DIR = Path("/tmp/psaksh_job_logs")
+# Use app data dir — always writable, accessible via FTP for debugging
+_JOB_LOG_DIR = Path(__file__).resolve().parent.parent / "data" / "job_logs"
 try:
     _JOB_LOG_DIR.mkdir(parents=True, exist_ok=True)
 except Exception:
-    _JOB_LOG_DIR = Path(__file__).resolve().parent.parent / "data" / "job_logs"
+    import tempfile as _tf
+    _JOB_LOG_DIR = Path(_tf.gettempdir()) / "psaksh_job_logs"
     _JOB_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 def _job_log_path(job_id: str) -> Path:
@@ -1664,6 +1666,39 @@ def api_chart(chart_name: str):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+
+@app.route("/publichealth/debug/job-log-test")
+@app.route("/debug/job-log-test")
+def debug_job_log_test():
+    """Test job log writing — diagnose SSE issues."""
+    import traceback as _tb
+    result = {}
+    try:
+        test_id = "DEBUG_TEST"
+        result["log_dir"] = str(_JOB_LOG_DIR)
+        result["log_dir_exists"] = _JOB_LOG_DIR.exists()
+        result["log_dir_writable"] = False
+        try:
+            _JOB_LOG_DIR.mkdir(parents=True, exist_ok=True)
+            test_file = _JOB_LOG_DIR / "write_test.txt"
+            test_file.write_text("test")
+            test_file.unlink()
+            result["log_dir_writable"] = True
+        except Exception as e:
+            result["write_error"] = str(e)
+
+        # Try writing a job log
+        _job_log(test_id, "Test line 1")
+        _job_log(test_id, "Test line 2")
+        lines = _job_log_read(test_id)
+        result["lines_written"] = len(lines)
+        result["lines"] = lines
+        result["log_path"] = str(_job_log_path(test_id))
+        result["log_exists"] = _job_log_path(test_id).exists()
+    except Exception as e:
+        result["error"] = _tb.format_exc()[-500:]
+    return jsonify(result)
 
 @app.route("/publichealth/glossary")
 @app.route("/glossary")
