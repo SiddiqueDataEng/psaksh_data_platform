@@ -237,23 +237,3 @@ python -m pytest psaksh_data_platform/tests/test_streamlit_app.py # Streamlit
 
 ---
 
-## 👥 Team
-
-| Contributor | Role |
-|-------------|------|
-| **SiddiqueDataEng** | Lead Data Engineer — Architecture, ETL, Flask, API |
-| **Farjad-SCT** | Data Engineer — Gold layer, SCD2, analytics |
-| **Saira-SCT** | Analytics Engineer — Prevalence, Streamlit, testing |
-| **Usama-SCT** | Frontend Engineer — Templates, Streamlit pages |
-| **Irfan-SCT** | Backend Engineer — API, deployment, governance |
-
----
-
-## 📄 License
-
-MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-*Built for the Urban Impact Lab (UIL) — Research, Analytics & Data Systems (RADS) vertical.*  
-*MeriSehat and AapiVerse public health programmes, Pakistan.*
